@@ -1,0 +1,76 @@
+apply plugin: 'com.android.application'
+
+android {
+
+    buildToolsVersion "23.0.2"
+    compileSdkVersion 23
+
+    defaultConfig {
+        applicationId "org.qii.weiciyuan"
+        minSdkVersion 17
+        targetSdkVersion 22
+        versionCode 58
+        versionName '0.5.0'
+    }
+
+
+    lintOptions {
+        abortOnError false
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+
+        release {
+            if (System.getenv("KEYSTORE") != null) {
+                storeFile file(System.getenv("KEYSTORE"))
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    /*
+     * android:targetPackage cant use ${applicationId}, so define a string source called "applicationId"
+     * Preference intent android:data dont support ${applicationId}
+     */
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+            resValue "string", "applicationId", "org.qii.weiciyuan" + getApplicationIdSuffix()
+            resValue "string", "weiciyuanOfficalWeiboName",
+                    "org.qii.weiciyuan" + getApplicationIdSuffix() + ".mention://@四次元App"
+            debuggable true
+            signingConfig signingConfigs.debug
+        }
+        release {
+            resValue "string", "applicationId", "org.qii.weiciyuan"
+            resValue "string", "weiciyuanOfficalWeiboName",
+                    "org.qii.weiciyuan" + ".mention://@四次元App"
+            debuggable false
+            signingConfig signingConfigs.release
+        }
+
+    }
+
+
+}
+
+dependencies {
+    compile 'com.android.support:support-v4:23.2.1'
+    compile project(':slidingmenulibrary')
+    compile project(':showcaseviewlibrary')
+    compile 'com.commit451:PhotoView:1.2.5'
+    compile 'pl.droidsonroids.gif:android-gif-drawable:1.1.14'
+    compile 'com.google.code.gson:gson:2.6.2'
+}
+
+

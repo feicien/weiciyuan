@@ -2,9 +2,10 @@
 /weiciyuan.iml
 /.gradle
 /local.properties
-/libs/libs.iml
-/libs/slidingmenulibrary/slidingmenulibrary.iml
-/libs/slidingmenulibrary/build
-/libs/showcaseviewlibrary/showcaseviewlibrary.iml
-/libs/showcaseviewlibrary/build
 /build
+/slidingmenulibrary/build
+/showcaseviewlibrary/showcaseviewlibrary.iml
+/showcaseviewlibrary/build
+/slidingmenulibrary/slidingmenulibrary.iml
+/app/app.iml
+/app/build
