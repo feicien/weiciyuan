@@ -122,6 +122,7 @@ dependencies {
     compile project(':libs:showcaseviewlibrary')
     compile 'com.commit451:PhotoView:1.2.5'
     compile 'pl.droidsonroids.gif:android-gif-drawable:1.1.14'
+    compile 'com.google.code.gson:gson:2.6.2'
 }
 
 
