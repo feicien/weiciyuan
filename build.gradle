@@ -121,6 +121,7 @@ dependencies {
     compile project(':libs:slidingmenulibrary')
     compile project(':libs:showcaseviewlibrary')
     compile 'com.commit451:PhotoView:1.2.5'
+    compile 'pl.droidsonroids.gif:android-gif-drawable:1.1.14'
 }
 
 
