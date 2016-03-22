@@ -1,41 +1,29 @@
 buildscript {
     repositories {
         jcenter()
-//        maven {
-//            url "http://127.0.0.1:8081/nexus/content/groups/public/"
-//        }
-        maven { url 'http://download.crashlytics.com/maven' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.1.1'
-        classpath 'com.crashlytics.tools.gradle:crashlytics-gradle:1.14.4'
+        classpath 'com.android.tools.build:gradle:2.1.0-alpha3'
     }
 }
 
 allprojects {
     repositories {
         jcenter()
-        maven { url 'http://download.crashlytics.com/maven' }
     }
 }
 
 apply plugin: 'com.android.application'
-apply plugin: 'crashlytics'
 
 android {
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
-    }
-
-    buildToolsVersion "21.1.2"
-    compileSdkVersion 21
+    buildToolsVersion "23.0.2"
+    compileSdkVersion 23
 
     defaultConfig {
         applicationId "org.qii.weiciyuan"
         minSdkVersion 17
-        targetSdkVersion 21
+        targetSdkVersion 22
         versionName null
     }
 
@@ -129,15 +117,10 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:support-v4:21.0.0'
-    compile 'com.crashlytics.android:crashlytics:1.1.11'
-    compile(project(':libs:slidingmenulibrary')) {
-        exclude group: 'com.google.android', module: 'support-v4'
-    }
-    compile(project(':libs:showcaseviewlibrary')) {
-        exclude group: 'com.google.android', module: 'support-v4'
+    compile 'com.android.support:support-v4:23.2.1'
+    compile project(':libs:slidingmenulibrary')
+    compile project(':libs:showcaseviewlibrary')
 
-    }
 }
 
 
