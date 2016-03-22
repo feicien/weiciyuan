@@ -1,23 +1,11 @@
-# built application files
-#*.apk
-#*.ap_
-
-# files for the dex VM
-*.dex
-
-# Java class files
-*.class
-
-# generated files
-#bin/
-#gen/
-
-# Local configuration file (sdk path, etc)
-local.properties
-weiciyuan.iml
-.idea
-ant.properties
-proguard-project.txt
-build.xml
-project.properties
-weiciyuan.iml
+/.idea
+/weiciyuan.iml
+/.gradle
+/local.properties
+/build
+/slidingmenulibrary/build
+/showcaseviewlibrary/showcaseviewlibrary.iml
+/showcaseviewlibrary/build
+/slidingmenulibrary/slidingmenulibrary.iml
+/app/app.iml
+/app/build

@@ -1,2 +1,3 @@
-include ':libs:slidingmenulibrary'
-include ':libs:showcaseviewlibrary'
+include ':app'
+include ':slidingmenulibrary'
+include ':showcaseviewlibrary'
