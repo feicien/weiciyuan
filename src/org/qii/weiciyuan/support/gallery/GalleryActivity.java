@@ -1,19 +1,5 @@
 package org.qii.weiciyuan.support.gallery;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.support.asyncdrawable.TaskCache;
-import org.qii.weiciyuan.support.file.FileDownloaderHttpHelper;
-import org.qii.weiciyuan.support.file.FileLocationMethod;
-import org.qii.weiciyuan.support.file.FileManager;
-import org.qii.weiciyuan.support.imageutility.ImageUtility;
-import org.qii.weiciyuan.support.lib.CircleProgressView;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.settinghelper.SettingUtility;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.SmileyPickerUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
@@ -44,6 +30,20 @@ import android.webkit.WebView;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.support.asyncdrawable.TaskCache;
+import org.qii.weiciyuan.support.file.FileDownloaderHttpHelper;
+import org.qii.weiciyuan.support.file.FileLocationMethod;
+import org.qii.weiciyuan.support.file.FileManager;
+import org.qii.weiciyuan.support.imageutility.ImageUtility;
+import org.qii.weiciyuan.support.lib.CircleProgressView;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.settinghelper.SettingUtility;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.SmileyPickerUtility;
+import org.qii.weiciyuan.support.utils.Utility;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -330,6 +330,10 @@ public class GalleryActivity extends Activity {
 
                 }
 
+                @Override
+                public void onOutsidePhotoTap() {
+
+                }
             });
         }
 
