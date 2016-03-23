@@ -1,17 +1,5 @@
 package org.qii.weiciyuan.ui.actionmenu;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.basefragment.AbstractTimeLineFragment;
-import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgFragment;
-import org.qii.weiciyuan.ui.send.WriteCommentActivity;
-import org.qii.weiciyuan.ui.send.WriteRepostActivity;
-import org.qii.weiciyuan.ui.task.FavAsyncTask;
-import org.qii.weiciyuan.ui.task.UnFavAsyncTask;
-
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -26,6 +14,18 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.ShareActionProvider;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.basefragment.AbstractTimeLineFragment;
+import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgFragment;
+import org.qii.weiciyuan.ui.send.WriteCommentActivity;
+import org.qii.weiciyuan.ui.send.WriteRepostActivity;
+import org.qii.weiciyuan.ui.task.FavAsyncTask;
+import org.qii.weiciyuan.ui.task.UnFavAsyncTask;
 
 /**
  * User: qii
@@ -159,7 +159,7 @@ public class StatusSingleChoiceModeListener implements ActionMode.Callback {
             case R.id.menu_remove:
 
                 int position = listView.getCheckedItemPosition() - listView.getHeaderViewsCount();
-                RemoveDialog dialog = new RemoveDialog(position);
+                RemoveDialog dialog = RemoveDialog.newInstance(position);
                 dialog.setTargetFragment(fragment, 0);
                 dialog.show(fragment.getFragmentManager(), "");
 

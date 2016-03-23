@@ -21,9 +21,6 @@ public class FollowTopicDialog extends DialogFragment {
         return new FollowTopicDialog();
     }
 
-    public FollowTopicDialog() {
-
-    }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {

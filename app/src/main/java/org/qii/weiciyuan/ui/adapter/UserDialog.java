@@ -1,5 +1,14 @@
 package org.qii.weiciyuan.ui.adapter;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
+import android.text.TextUtils;
+import android.widget.Toast;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.UserBean;
 import org.qii.weiciyuan.dao.relationship.FriendshipsDao;
@@ -12,15 +21,6 @@ import org.qii.weiciyuan.support.utils.GlobalContext;
 import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
 import org.qii.weiciyuan.ui.userinfo.ManageGroupDialog;
 
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.os.Bundle;
-import android.support.v4.app.DialogFragment;
-import android.text.TextUtils;
-import android.widget.Toast;
-
 /**
  * User: qii
  * Date: 13-3-10
@@ -29,30 +29,22 @@ public class UserDialog extends DialogFragment {
 
     private UserBean user;
 
-    public UserDialog() {
+    public static UserDialog newInstance(UserBean user) {
 
+        Bundle args = new Bundle();
+        args.putParcelable("user",user);
+        UserDialog fragment = new UserDialog();
+        fragment.setArguments(args);
+        return fragment;
     }
 
-    public UserDialog(UserBean user) {
-        this.user = user;
-    }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putParcelable("user", user);
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (savedInstanceState != null) {
-            user = savedInstanceState.getParcelable("user");
-        }
-    }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+
+        user = getArguments().getParcelable("user");
+
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         CharSequence[] friendItems = {getString(R.string.at_him), getString(R.string.manage_group),
                 getString(R.string.add_to_app_filter), getString(R.string.unfollow_him)};
@@ -107,8 +99,7 @@ public class UserDialog extends DialogFragment {
                     startActivity(intent);
                     break;
                 case 1:
-                    ManageGroupDialog manageGroupDialog = new ManageGroupDialog(
-                            GlobalContext.getInstance().getGroup(), user.getId());
+                    ManageGroupDialog manageGroupDialog = ManageGroupDialog.newInstance(GlobalContext.getInstance().getGroup(), user.getId());
                     manageGroupDialog.show(getFragmentManager(), "");
                     break;
                 case 2:

@@ -1,14 +1,14 @@
 package org.qii.weiciyuan.ui.topic;
 
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.MenuItem;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.UserBean;
 import org.qii.weiciyuan.support.utils.GlobalContext;
 import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
 import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-
-import android.content.Intent;
-import android.os.Bundle;
-import android.view.MenuItem;
 
 import java.util.ArrayList;
 
@@ -37,9 +37,9 @@ public class UserTopicListActivity extends AbstractAppActivity {
         if (savedInstanceState == null) {
             UserTopicListFragment fragment;
             if (topicList != null) {
-                fragment = new UserTopicListFragment(userBean, topicList);
+                fragment = UserTopicListFragment.newInstance(userBean, topicList);
             } else {
-                fragment = new UserTopicListFragment(userBean);
+                fragment = UserTopicListFragment.newInstance(userBean, null);
             }
             getFragmentManager().beginTransaction()
                     .replace(android.R.id.content, fragment)

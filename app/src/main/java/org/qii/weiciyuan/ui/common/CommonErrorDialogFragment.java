@@ -1,12 +1,12 @@
 package org.qii.weiciyuan.ui.common;
 
-import org.qii.weiciyuan.R;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+
+import org.qii.weiciyuan.R;
 
 /**
  * User: qii
@@ -14,9 +14,6 @@ import android.support.v4.app.DialogFragment;
  */
 public class CommonErrorDialogFragment extends DialogFragment {
 
-    public CommonErrorDialogFragment() {
-
-    }
 
     public static CommonErrorDialogFragment newInstance(String error) {
         CommonErrorDialogFragment fragment = new CommonErrorDialogFragment();

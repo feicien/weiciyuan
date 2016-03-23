@@ -1,5 +1,15 @@
 package org.qii.weiciyuan.ui.topic;
 
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.v4.content.Loader;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.Toast;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.TopicResultListBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
@@ -12,16 +22,6 @@ import org.qii.weiciyuan.ui.basefragment.AbstractMessageTimeLineFragment;
 import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgActivity;
 import org.qii.weiciyuan.ui.loader.SearchTopicByNameLoader;
 import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
-
-import android.content.Intent;
-import android.os.Bundle;
-import android.support.v4.content.Loader;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.Toast;
 
 /**
  * User: qii
@@ -45,12 +45,14 @@ public class SearchTopicByNameFragment
         return bean;
     }
 
-    public SearchTopicByNameFragment() {
 
-    }
+    public static SearchTopicByNameFragment newInstance(String q) {
 
-    public SearchTopicByNameFragment(String q) {
-        this.q = q;
+        Bundle args = new Bundle();
+        args.putString("q", q);
+        SearchTopicByNameFragment fragment = new SearchTopicByNameFragment();
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
@@ -62,7 +64,6 @@ public class SearchTopicByNameFragment
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString("q", q);
         outState.putInt("page", page);
         outState.putParcelable("bean", bean);
     }
@@ -71,6 +72,7 @@ public class SearchTopicByNameFragment
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+        q = getArguments().getString("q");
         switch (getCurrentState(savedInstanceState)) {
             case FIRST_TIME_START:
                 getPullToRefreshListView().setRefreshing();
@@ -81,7 +83,7 @@ public class SearchTopicByNameFragment
                 refreshLayout(bean);
                 break;
             case ACTIVITY_DESTROY_AND_CREATE:
-                q = savedInstanceState.getString("q");
+
                 page = savedInstanceState.getInt("page");
                 getList()
                         .addNewData((TopicResultListBean) savedInstanceState.getParcelable("bean"));

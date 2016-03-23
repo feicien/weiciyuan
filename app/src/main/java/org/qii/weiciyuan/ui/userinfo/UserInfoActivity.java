@@ -1,5 +1,21 @@
 package org.qii.weiciyuan.ui.userinfo;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.nfc.NdefMessage;
+import android.nfc.NfcAdapter;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Parcelable;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
+import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.Toast;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.UserBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
@@ -23,22 +39,6 @@ import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
 import org.qii.weiciyuan.ui.loader.AbstractAsyncNetRequestTaskLoader;
 import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
-
-import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
-import android.nfc.NdefMessage;
-import android.nfc.NfcAdapter;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Parcelable;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.Loader;
-import android.text.TextUtils;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.Toast;
 
 import java.util.List;
 
@@ -308,8 +308,7 @@ public class UserInfoActivity extends AbstractAppActivity {
     }
 
     private void manageGroup() {
-        ManageGroupDialog dialog = new ManageGroupDialog(GlobalContext.getInstance().getGroup(),
-                bean.getId());
+        ManageGroupDialog dialog = ManageGroupDialog.newInstance(GlobalContext.getInstance().getGroup(), bean.getId());
         dialog.show(getSupportFragmentManager(), "");
     }
 

@@ -1,12 +1,12 @@
 package org.qii.weiciyuan.ui.friendgroup;
 
-import org.qii.weiciyuan.R;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
 import android.os.Bundle;
+
+import org.qii.weiciyuan.R;
 
 import java.util.ArrayList;
 
@@ -15,27 +15,20 @@ import java.util.ArrayList;
  * Date: 13-2-15
  */
 public class RemoveGroupDialog extends DialogFragment {
-    private ArrayList<String> checkedNames;
 
-    public RemoveGroupDialog() {
+    public static RemoveGroupDialog newInstance(ArrayList<String> checkedNames) {
 
+        Bundle args = new Bundle();
+        args.putStringArrayList("checkedNames", checkedNames);
+        RemoveGroupDialog fragment = new RemoveGroupDialog();
+        fragment.setArguments(args);
+        return fragment;
     }
 
-    public RemoveGroupDialog(ArrayList<String> checkedNames) {
-        this.checkedNames = checkedNames;
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putStringArrayList("checkedNames", checkedNames);
-    }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            checkedNames = savedInstanceState.getStringArrayList("checkedNames");
-        }
+        final ArrayList<String> checkedNames = getArguments().getStringArrayList("checkedNames");
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(getString(R.string.remove_group))
                 .setMessage(getString(R.string.remove_group_content))

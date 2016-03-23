@@ -92,7 +92,7 @@ public class MyURLSpan extends ClickableSpan implements ParcelableSpan {
             }
             if (!TextUtils.isEmpty(newValue)) {
                 Utility.vibrate(widget.getContext(), widget);
-                LongClickLinkDialog dialog = new LongClickLinkDialog(data);
+                LongClickLinkDialog dialog = LongClickLinkDialog.newInstance(data);
                 Utility.forceShowDialog((FragmentActivity) widget.getContext(), dialog);
             }
         }

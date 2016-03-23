@@ -1,5 +1,25 @@
 package org.qii.weiciyuan.ui.adapter;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.graphics.drawable.Drawable;
+import android.support.v4.app.Fragment;
+import android.text.TextPaint;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.AbsListView;
+import android.widget.BaseAdapter;
+import android.widget.GridLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.ItemBean;
 import org.qii.weiciyuan.bean.MessageBean;
@@ -24,26 +44,6 @@ import org.qii.weiciyuan.support.utils.Utility;
 import org.qii.weiciyuan.support.utils.ViewUtility;
 import org.qii.weiciyuan.ui.basefragment.AbstractTimeLineFragment;
 import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
-
-import android.app.Activity;
-import android.content.Intent;
-import android.graphics.drawable.Drawable;
-import android.support.v4.app.Fragment;
-import android.text.TextPaint;
-import android.text.TextUtils;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.AbsListView;
-import android.widget.BaseAdapter;
-import android.widget.GridLayout;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ListView;
-import android.widget.TextView;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -522,7 +522,7 @@ public abstract class AbstractAppListAdapter<T extends ItemBean> extends BaseAda
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                UserDialog dialog = new UserDialog(user);
+                UserDialog dialog = UserDialog.newInstance(user);
                 dialog.show(fragment.getFragmentManager(), "");
                 return true;
             }

@@ -1,12 +1,12 @@
 package org.qii.weiciyuan.ui.browser;
 
-import org.qii.weiciyuan.bean.CommentBean;
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+
+import org.qii.weiciyuan.bean.CommentBean;
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 
 /**
  * User: qii
@@ -34,7 +34,7 @@ public class BrowserCommentActivity extends AbstractAppActivity {
         if (getFragmentManager().findFragmentByTag(BrowserCommentActivity.class.getName())
                 == null) {
             getFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, new BrowserCommentFragment(bean),
+                    .replace(android.R.id.content, BrowserCommentFragment.newInstance(bean),
                             BrowserCommentFragment.class.getName())
                     .commit();
         }

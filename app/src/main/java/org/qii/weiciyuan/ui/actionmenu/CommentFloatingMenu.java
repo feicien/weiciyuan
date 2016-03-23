@@ -1,11 +1,5 @@
 package org.qii.weiciyuan.ui.actionmenu;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.CommentBean;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgActivity;
-import org.qii.weiciyuan.ui.send.WriteReplyToCommentActivity;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -13,37 +7,34 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.CommentBean;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgActivity;
+import org.qii.weiciyuan.ui.send.WriteReplyToCommentActivity;
+
 /**
  * User: qii
  * Date: 12-12-6
  */
 public class CommentFloatingMenu extends DialogFragment {
 
-    private CommentBean bean;
+    public static CommentFloatingMenu newInstance(CommentBean bean) {
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putParcelable("bean", bean);
-    }
-
-    public CommentFloatingMenu() {
-
-    }
-
-    public CommentFloatingMenu(CommentBean bean) {
-        this.bean = bean;
+        Bundle args = new Bundle();
+        args.putParcelable("bean", bean);
+        CommentFloatingMenu fragment = new CommentFloatingMenu();
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
-        if (savedInstanceState != null) {
-            bean = (CommentBean) savedInstanceState.getParcelable("bean");
-        }
+        final CommentBean bean = getArguments().getParcelable("bean");
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle(this.bean.getUser().getScreen_name());
+        builder.setTitle(bean.getUser().getScreen_name());
         String[] str = {getString(R.string.view), getString(R.string.reply_to_comment)};
         builder.setItems(str, new DialogInterface.OnClickListener() {
             @Override
@@ -68,8 +59,4 @@ public class CommentFloatingMenu extends DialogFragment {
         return builder.create();
     }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-    }
 }

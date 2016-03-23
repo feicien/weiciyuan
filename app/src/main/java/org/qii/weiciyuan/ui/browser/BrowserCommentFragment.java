@@ -1,13 +1,5 @@
 package org.qii.weiciyuan.ui.browser;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.CommentBean;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.TimeLineUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.send.WriteReplyToCommentActivity;
-import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
-
 import android.app.Fragment;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -28,6 +20,14 @@ import android.widget.ShareActionProvider;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.CommentBean;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.TimeLineUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.send.WriteReplyToCommentActivity;
+import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
+
 /**
  * User: qii
  * Date: 12-9-19
@@ -43,27 +43,23 @@ public class BrowserCommentFragment extends Fragment {
     private ImageView avatar;
     private ShareActionProvider mShareActionProvider;
 
-    public BrowserCommentFragment() {
+
+    public static BrowserCommentFragment newInstance(CommentBean msg) {
+
+        Bundle args = new Bundle();
+        args.putParcelable("msg",msg);
+        BrowserCommentFragment fragment = new BrowserCommentFragment();
+        fragment.setArguments(args);
+        return fragment;
     }
 
-    public BrowserCommentFragment(CommentBean msg) {
-        this.msg = msg;
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putParcelable("msg", msg);
-    }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         setHasOptionsMenu(true);
         setRetainInstance(true);
-        if (savedInstanceState != null) {
-            msg = (CommentBean) savedInstanceState.getParcelable("msg");
-        }
+        msg = getArguments().getParcelable("msg");
         buildViewData();
     }
 

@@ -1,14 +1,5 @@
 package org.qii.weiciyuan.ui.topic;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.dao.topic.TopicDao;
-import org.qii.weiciyuan.dao.topic.UserTopicListDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-
 import android.app.ListFragment;
 import android.content.Intent;
 import android.os.Bundle;
@@ -19,6 +10,15 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.dao.topic.TopicDao;
+import org.qii.weiciyuan.dao.topic.UserTopicListDao;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,18 +37,17 @@ public class UserTopicListFragment extends ListFragment {
     private TopicListTask task;
     private FollowTopicTask followTopicTask;
 
-    public UserTopicListFragment() {
 
+    public static UserTopicListFragment newInstance(UserBean userBean, ArrayList<String> topicList) {
+
+        Bundle args = new Bundle();
+        args.putParcelable("userBean", userBean);
+        args.putStringArrayList("topicList", topicList);
+        UserTopicListFragment fragment = new UserTopicListFragment();
+        fragment.setArguments(args);
+        return fragment;
     }
 
-    public UserTopicListFragment(UserBean userBean) {
-        this.userBean = userBean;
-    }
-
-    public UserTopicListFragment(UserBean userBean, ArrayList<String> topicList) {
-        this.userBean = userBean;
-        this.result = topicList;
-    }
 
     @Override
     public void onDetach() {
@@ -56,12 +55,6 @@ public class UserTopicListFragment extends ListFragment {
         Utility.cancelTasks(task, followTopicTask);
     }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putParcelable("userBean", userBean);
-        outState.putStringArrayList("topicList", result);
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -73,10 +66,8 @@ public class UserTopicListFragment extends ListFragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        if (savedInstanceState != null) {
-            userBean = (UserBean) savedInstanceState.getParcelable("userBean");
-            result = (ArrayList<String>) savedInstanceState.getStringArrayList("topicList");
-        }
+        userBean = getArguments().getParcelable("userBean");
+        result = getArguments().getStringArrayList("topicList");
         adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1,
                 result);
         setListAdapter(adapter);

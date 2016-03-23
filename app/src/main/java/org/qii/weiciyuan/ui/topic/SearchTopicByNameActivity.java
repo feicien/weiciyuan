@@ -1,13 +1,13 @@
 package org.qii.weiciyuan.ui.topic;
 
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
+
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 
 /**
  * User: qii
@@ -30,7 +30,7 @@ public class SearchTopicByNameActivity extends AbstractAppActivity {
         getActionBar().setTitle("#" + q + "#");
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, new SearchTopicByNameFragment(q))
+                    .replace(android.R.id.content, SearchTopicByNameFragment.newInstance(q))
                     .commit();
         }
     }

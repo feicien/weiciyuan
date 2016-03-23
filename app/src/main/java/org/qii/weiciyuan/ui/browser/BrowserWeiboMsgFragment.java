@@ -1,5 +1,31 @@
 package org.qii.weiciyuan.ui.browser;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
+import android.support.v4.content.LocalBroadcastManager;
+import android.text.Html;
+import android.text.TextUtils;
+import android.view.ActionMode;
+import android.view.LayoutInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AbsListView;
+import android.widget.AdapterView;
+import android.widget.GridLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.CommentListBean;
 import org.qii.weiciyuan.bean.GeoBean;
@@ -34,32 +60,6 @@ import org.qii.weiciyuan.ui.interfaces.IRemoveItem;
 import org.qii.weiciyuan.ui.loader.CommentsByIdMsgLoader;
 import org.qii.weiciyuan.ui.loader.RepostByIdMsgLoader;
 import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Handler;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.Loader;
-import android.support.v4.content.LocalBroadcastManager;
-import android.text.Html;
-import android.text.TextUtils;
-import android.view.ActionMode;
-import android.view.LayoutInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AbsListView;
-import android.widget.AdapterView;
-import android.widget.GridLayout;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -129,27 +129,18 @@ public class BrowserWeiboMsgFragment extends AbstractAppFragment implements IRem
     }
 
     public static BrowserWeiboMsgFragment newInstance(MessageBean msg) {
-        BrowserWeiboMsgFragment fragment = new BrowserWeiboMsgFragment(msg);
+
+        Bundle args = new Bundle();
+        args.putParcelable("msg", msg);
+        BrowserWeiboMsgFragment fragment = new BrowserWeiboMsgFragment();
+        fragment.setArguments(args);
         return fragment;
     }
 
-    public BrowserWeiboMsgFragment() {
-    }
-
-    public BrowserWeiboMsgFragment(MessageBean msg) {
-        this.msg = msg;
-    }
-
-    private boolean hasGpsInfo() {
-        return (this.msg != null) && (this.msg.getGeo() != null);
-    }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-//        if (hasGpsInfo())
-//            layout.mapView.onSaveInstanceState(outState);
-        outState.putParcelable("msg", msg);
         outState.putParcelable("commentList", commentList);
         outState.putParcelable("repostList", repostList);
     }
@@ -159,6 +150,8 @@ public class BrowserWeiboMsgFragment extends AbstractAppFragment implements IRem
         super.onActivityCreated(savedInstanceState);
         setHasOptionsMenu(true);
         setRetainInstance(true);
+
+        msg = getArguments().getParcelable("msg");
 
         switch (getCurrentState(savedInstanceState)) {
             case FIRST_TIME_START:
@@ -180,7 +173,7 @@ public class BrowserWeiboMsgFragment extends AbstractAppFragment implements IRem
                 buildViewData(true);
                 break;
             case ACTIVITY_DESTROY_AND_CREATE:
-                msg = savedInstanceState.getParcelable("msg");
+
                 commentList.replaceAll(
                         (CommentListBean) savedInstanceState.getParcelable("commentList"));
                 repostList.replaceAll(

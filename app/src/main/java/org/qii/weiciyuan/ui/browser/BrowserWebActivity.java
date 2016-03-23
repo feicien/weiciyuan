@@ -1,5 +1,13 @@
 package org.qii.weiciyuan.ui.browser;
 
+import android.app.ActionBar;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Gravity;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.dao.shorturl.ShareShortUrlCountDao;
 import org.qii.weiciyuan.support.error.WeiboException;
@@ -8,14 +16,6 @@ import org.qii.weiciyuan.support.lib.MyAsyncTask;
 import org.qii.weiciyuan.support.utils.GlobalContext;
 import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
 import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-
-import android.app.ActionBar;
-import android.content.Intent;
-import android.os.Bundle;
-import android.view.Gravity;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
 
 /**
  * User: qii
@@ -63,7 +63,7 @@ public class BrowserWebActivity extends AbstractAppActivity {
         getActionBar().setTitle(url);
         if (savedInstanceState == null) {
             getFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, new BrowserWebFragment(url)).commit();
+                    .replace(android.R.id.content, BrowserWebFragment.newInstance(url)).commit();
             new ShareCountTask().executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
         } else {
             shareCountInt = savedInstanceState.getInt("shareCountInt");

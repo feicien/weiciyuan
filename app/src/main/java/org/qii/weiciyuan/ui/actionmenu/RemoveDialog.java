@@ -1,13 +1,14 @@
 package org.qii.weiciyuan.ui.actionmenu;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.ui.interfaces.IRemoveItem;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.ui.interfaces.IRemoveItem;
 
 /**
  * User: qii
@@ -15,33 +16,22 @@ import android.support.v4.app.DialogFragment;
  */
 public class RemoveDialog extends DialogFragment {
 
-    private int positon;
+    public static RemoveDialog newInstance(int position) {
 
-    public RemoveDialog() {
-
+        Bundle args = new Bundle();
+        args.putInt("position", position);
+        RemoveDialog fragment = new RemoveDialog();
+        fragment.setArguments(args);
+        return fragment;
     }
 
-    public RemoveDialog(int positon) {
 
-        this.positon = positon;
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putInt("positon", positon);
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (savedInstanceState != null) {
-            positon = savedInstanceState.getInt("position");
-        }
-    }
-
+    @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+
+        final int positon = getArguments().getInt("position");
+
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(getString(R.string.askdelete))
                 .setMessage(getString(R.string.askdeletemessage))

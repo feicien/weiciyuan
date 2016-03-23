@@ -82,9 +82,6 @@ public class MentionsWeiboTimeLineFragment
         return fragment;
     }
 
-    public MentionsWeiboTimeLineFragment() {
-
-    }
 
     @Override
     public void onResume() {

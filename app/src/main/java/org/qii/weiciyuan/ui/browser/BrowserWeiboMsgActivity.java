@@ -1,5 +1,21 @@
 package org.qii.weiciyuan.ui.browser;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
+import android.view.GestureDetector;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.ShareActionProvider;
+import android.widget.Toast;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.MessageBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
@@ -19,22 +35,6 @@ import org.qii.weiciyuan.ui.send.WriteCommentActivity;
 import org.qii.weiciyuan.ui.send.WriteRepostActivity;
 import org.qii.weiciyuan.ui.task.FavAsyncTask;
 import org.qii.weiciyuan.ui.task.UnFavAsyncTask;
-
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.Intent;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.Loader;
-import android.view.GestureDetector;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.ShareActionProvider;
-import android.widget.Toast;
 
 /**
  * User: Jiang Qi
@@ -228,7 +228,7 @@ public class BrowserWeiboMsgActivity extends AbstractAppActivity
                 }
                 return true;
             case R.id.menu_delete:
-                RemoveWeiboMsgDialog dialog = new RemoveWeiboMsgDialog(msg.getId());
+                RemoveWeiboMsgDialog dialog = RemoveWeiboMsgDialog.newInstance(msg.getId());
                 dialog.show(getFragmentManager(), "");
                 return true;
         }

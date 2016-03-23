@@ -125,9 +125,6 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.browser.BrowserShareTimeLineActivity"/>
-        <activity
-                android:name=".ui.browser.AppMapActivity"
-                android:launchMode="singleTop"/>
 
 
         <!--topic activity intent action refer to {@link WeiboPatterns}-->

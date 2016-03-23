@@ -1,5 +1,13 @@
 package org.qii.weiciyuan.ui.maintimeline;
 
+import android.os.Bundle;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
+import android.view.View;
+import android.widget.AbsListView;
+import android.widget.AdapterView;
+import android.widget.Toast;
+
 import org.qii.weiciyuan.bean.AccountBean;
 import org.qii.weiciyuan.bean.CommentListBean;
 import org.qii.weiciyuan.bean.UserBean;
@@ -19,14 +27,6 @@ import org.qii.weiciyuan.ui.basefragment.AbstractTimeLineFragment;
 import org.qii.weiciyuan.ui.interfaces.IRemoveItem;
 import org.qii.weiciyuan.ui.loader.CommentsByMeDBLoader;
 import org.qii.weiciyuan.ui.loader.CommentsByMeMsgLoader;
-
-import android.os.Bundle;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.Loader;
-import android.view.View;
-import android.widget.AbsListView;
-import android.widget.AdapterView;
-import android.widget.Toast;
 
 /**
  * User: qii
@@ -259,7 +259,7 @@ public class CommentsByMeTimeLineFragment extends AbstractTimeLineFragment<Comme
     }
 
     protected void listViewItemClick(AdapterView parent, View view, int position, long id) {
-        CommentFloatingMenu menu = new CommentFloatingMenu(getList().getItem(position));
+        CommentFloatingMenu menu = CommentFloatingMenu.newInstance(getList().getItem(position));
         menu.show(getFragmentManager(), "");
     }
 
