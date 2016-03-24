@@ -11,17 +11,20 @@ import android.widget.AdapterView;
 import android.widget.Toast;
 
 import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.TopicBean;
 import org.qii.weiciyuan.bean.TopicResultListBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
-import org.qii.weiciyuan.dao.topic.TopicDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
 import org.qii.weiciyuan.ui.basefragment.AbstractMessageTimeLineFragment;
 import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgActivity;
 import org.qii.weiciyuan.ui.loader.SearchTopicByNameLoader;
 import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -37,8 +40,6 @@ public class SearchTopicByNameFragment
 
     private TopicResultListBean bean = new TopicResultListBean();
 
-    private FollowTopicTask followTopicTask;
-    private UnFollowTopicTask unFollowTopicTask;
 
     @Override
     public TopicResultListBean getList() {
@@ -55,11 +56,6 @@ public class SearchTopicByNameFragment
         return fragment;
     }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        Utility.cancelTasks(followTopicTask, unFollowTopicTask);
-    }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -134,16 +130,10 @@ public class SearchTopicByNameFragment
                 loadNewMsg();
                 break;
             case R.id.menu_follow_topic:
-                if (Utility.isTaskStopped(followTopicTask)) {
-                    followTopicTask = new FollowTopicTask();
-                    followTopicTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
+                followTopic();
                 break;
             case R.id.menu_unfollow_topic:
-                if (Utility.isTaskStopped(unFollowTopicTask)) {
-                    unFollowTopicTask = new UnFollowTopicTask();
-                    unFollowTopicTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
+                unFollowTopic();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -161,82 +151,97 @@ public class SearchTopicByNameFragment
         getActivity().getActionBar().setSubtitle(number);
     }
 
-    private class FollowTopicTask extends MyAsyncTask<Void, Boolean, Boolean> {
 
-        WeiboException e;
+    private void followTopic(){
 
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            try {
-                return new TopicDao(GlobalContext.getInstance().getSpecialToken()).follow(q);
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-            }
-            return false;
-        }
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        String token = GlobalContext.getInstance().getSpecialToken();
 
-        @Override
-        protected void onCancelled(Boolean aBoolean) {
-            super.onCancelled(aBoolean);
-            if (Utility.isAllNotNull(getActivity(), this.e)) {
-                Toast.makeText(getActivity(), e.getError(), Toast.LENGTH_SHORT).show();
-            }
-        }
+        Call<TopicBean> call = service.followTopic(token, q);
+        call.enqueue(new Callback<TopicBean>() {
+            @Override
+            public void onResponse(Call<TopicBean> call, Response<TopicBean> response) {
+                if(response.isSuccessful()) {
+                    TopicBean user = response.body();
 
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            if (getActivity() == null) {
-                return;
+                    if (user!=null) {
+                        Toast.makeText(getActivity(), getString(R.string.follow_topic_successfully), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getActivity(), getString(R.string.follow_topic_failed), Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
-            if (aBoolean) {
-                Toast.makeText(getActivity(), getString(R.string.follow_topic_successfully),
-                        Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getActivity(), getString(R.string.follow_topic_failed),
-                        Toast.LENGTH_SHORT).show();
+
+            @Override
+            public void onFailure(Call<TopicBean> call, Throwable t) {
             }
-        }
+        });
+
     }
 
-    private class UnFollowTopicTask extends MyAsyncTask<Void, Boolean, Boolean> {
 
-        WeiboException e;
+    private void unFollowTopic(){
 
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            try {
-                return new TopicDao(GlobalContext.getInstance().getSpecialToken()).destroy(q);
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-            }
-            return false;
-        }
+        isFollowTopic();
 
-        @Override
-        protected void onCancelled(Boolean aBoolean) {
-            super.onCancelled(aBoolean);
-            if (Utility.isAllNotNull(getActivity(), this.e)) {
-                Toast.makeText(getActivity(), e.getError(), Toast.LENGTH_SHORT).show();
-            }
-        }
+    }
+    private void isFollowTopic(){
 
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            if (getActivity() == null) {
-                return;
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        String token = GlobalContext.getInstance().getSpecialToken();
+
+        Call<TopicBean> call = service.isFollowTopic(token, q);
+        call.enqueue(new Callback<TopicBean>() {
+            @Override
+            public void onResponse(Call<TopicBean> call, Response<TopicBean> response) {
+                if(response.isSuccessful()) {
+                    TopicBean user = response.body();
+
+                    if (user!=null && user.is_follow) {
+
+                        unFollow(user.trend_id);
+
+                    } else {
+                        Toast.makeText(getActivity(), getString(R.string.unfollow_topic_failed),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
-            if (aBoolean) {
-                Toast.makeText(getActivity(), getString(R.string.unfollow_topic_successfully),
-                        Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getActivity(), getString(R.string.unfollow_topic_failed),
-                        Toast.LENGTH_SHORT).show();
+
+            @Override
+            public void onFailure(Call<TopicBean> call, Throwable t) {
             }
-        }
+        });
+
+    }
+
+    private void unFollow(String trend_id){
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        String token = GlobalContext.getInstance().getSpecialToken();
+
+        Call<TopicBean> call = service.unFollowTopic(token, trend_id);
+        call.enqueue(new Callback<TopicBean>() {
+            @Override
+            public void onResponse(Call<TopicBean> call, Response<TopicBean> response) {
+                if(response.isSuccessful()) {
+                    TopicBean user = response.body();
+
+                    if (user!=null && user.result) {
+                        Toast.makeText(getActivity(), getString(R.string.unfollow_topic_successfully),
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getActivity(), getString(R.string.unfollow_topic_failed),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<TopicBean> call, Throwable t) {
+            }
+        });
+
     }
 
     @Override

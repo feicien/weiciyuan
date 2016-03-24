@@ -1,13 +1,5 @@
 package org.qii.weiciyuan.ui.search;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.AtUserBean;
-import org.qii.weiciyuan.dao.search.AtUserDao;
-import org.qii.weiciyuan.support.database.AtUsersDBTask;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-
 import android.app.Activity;
 import android.app.ListFragment;
 import android.app.SearchManager;
@@ -22,8 +14,19 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.SearchView;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.AtUserBean;
+import org.qii.weiciyuan.support.database.AtUsersDBTask;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -37,7 +40,6 @@ public class AtUserFragment extends ListFragment {
     private List<AtUserBean> atList = new ArrayList<AtUserBean>();
 
     private String token;
-    private AtUserTask task;
 
     public static AtUserFragment newInstance(String token) {
         AtUserFragment fragment = new AtUserFragment();
@@ -47,13 +49,6 @@ public class AtUserFragment extends ListFragment {
         return fragment;
     }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        if (task != null) {
-            task.cancel(true);
-        }
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -107,15 +102,9 @@ public class AtUserFragment extends ListFragment {
             @Override
             public boolean onQueryTextChange(String newText) {
                 if (!TextUtils.isEmpty(newText)) {
-                    if (task != null) {
-                        task.cancel(true);
-                    }
-                    task = new AtUserTask(newText);
-                    task.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+                    atUser(newText);
                 } else {
-                    if (task != null) {
-                        task.cancel(true);
-                    }
+
                     atList.clear();
                     result.clear();
                     atList = AtUsersDBTask.get(GlobalContext.getInstance().getCurrentAccountId());
@@ -130,49 +119,42 @@ public class AtUserFragment extends ListFragment {
         searchView.requestFocus();
     }
 
-    private class AtUserTask extends MyAsyncTask<Void, List<AtUserBean>, List<AtUserBean>> {
-        WeiboException e;
-        String q;
 
-        public AtUserTask(String q) {
-            this.q = q;
-        }
+    private void atUser(final String q){
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<List<AtUserBean>> call = service.searchATUser(token, q,"10","0","2");
+        call.enqueue(new Callback<List<AtUserBean>>() {
+            @Override
+            public void onResponse(Call<List<AtUserBean>> call, Response<List<AtUserBean>> response) {
 
-        @Override
-        protected List<AtUserBean> doInBackground(Void... params) {
-            AtUserDao dao = new AtUserDao(token, q);
-            try {
-                return dao.getUserInfo();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-                return null;
-            }
-        }
+                if (response.isSuccessful()) {
 
-        @Override
-        protected void onPostExecute(List<AtUserBean> atUserBeans) {
-            super.onPostExecute(atUserBeans);
-            if (isCancelled()) {
-                return;
-            }
-            if (atUserBeans == null || atUserBeans.size() == 0) {
-                result.clear();
-                atList.clear();
-                adapter.notifyDataSetChanged();
-                return;
-            }
+                    List<AtUserBean> atUserBeans = response.body();
+                    if (atUserBeans == null || atUserBeans.size() == 0) {
+                        result.clear();
+                        atList.clear();
+                        adapter.notifyDataSetChanged();
+                        return;
+                    }
 
-            result.clear();
-            for (AtUserBean b : atUserBeans) {
-                if (b.getRemark().contains(q)) {
-                    result.add(b.getNickname() + "(" + b.getRemark() + ")");
-                } else {
-                    result.add(b.getNickname());
+                    result.clear();
+                    for (AtUserBean b : atUserBeans) {
+                        if (b.getRemark().contains(q)) {
+                            result.add(b.getNickname() + "(" + b.getRemark() + ")");
+                        } else {
+                            result.add(b.getNickname());
+                        }
+                    }
+                    atList = atUserBeans;
+                    adapter.notifyDataSetChanged();
+
                 }
             }
-            atList = atUserBeans;
-            adapter.notifyDataSetChanged();
-        }
+
+            @Override
+            public void onFailure(Call<List<AtUserBean>> call, Throwable t) {
+
+            }
+        });
     }
 }

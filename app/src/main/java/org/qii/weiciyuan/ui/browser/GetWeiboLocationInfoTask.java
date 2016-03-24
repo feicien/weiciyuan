@@ -1,20 +1,31 @@
 package org.qii.weiciyuan.ui.browser;
 
-import org.qii.weiciyuan.bean.GeoBean;
-import org.qii.weiciyuan.dao.location.BaiduGeoCoderDao;
-import org.qii.weiciyuan.dao.location.GoogleGeoCoderDao;
-import org.qii.weiciyuan.dao.map.MapDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import org.qii.weiciyuan.bean.GeoBean;
+import org.qii.weiciyuan.bean.MapBean;
+import org.qii.weiciyuan.dao.location.BaiduGeoCoderDao;
+import org.qii.weiciyuan.dao.location.GoogleGeoCoderDao;
+import org.qii.weiciyuan.support.asyncdrawable.TaskCache;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.file.FileLocationMethod;
+import org.qii.weiciyuan.support.file.FileManager;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.imageutility.ImageUtility;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+
+import java.io.IOException;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -57,13 +68,41 @@ public class GetWeiboLocationInfoTask extends MyAsyncTask<Void, String, Bitmap> 
             }
         }
 
-        MapDao dao = new MapDao(GlobalContext.getInstance().getSpecialToken(), geoBean.getLat(),
-                geoBean.getLon());
+
+        String token = GlobalContext.getInstance().getSpecialToken();
+
+        String coordinates = String.valueOf(geoBean.getLat()) + "," + String.valueOf(geoBean.getLon());
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<MapBean> call = service.getMap(token,coordinates, "14","600*380");
         try {
-            return dao.getMap();
-        } catch (WeiboException e) {
-            return null;
+            Response<MapBean> response = call.execute();
+
+            MapBean bean = response.body();
+            String mapUrl = bean.image_url;
+
+            String filePath = FileManager.getFilePathFromUrl(mapUrl, FileLocationMethod.map);
+
+            boolean downloaded = TaskCache
+                    .waitForPictureDownload(mapUrl, null, filePath, FileLocationMethod.map);
+
+            if (!downloaded) {
+                return null;
+            }
+
+            Bitmap bitmap = ImageUtility
+                    .readNormalPic(FileManager.getFilePathFromUrl(mapUrl, FileLocationMethod.map), -1,
+                            -1);
+
+            return bitmap;
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+        return null;
+
     }
 
     @Override

@@ -519,14 +519,9 @@ public class MentionsWeiboTimeLineFragment
 
             @Override
             protected Void doInBackground(Void... params) {
-                try {
-                    new ClearUnreadDao(
-                            GlobalContext.getInstance().getAccountBean().getAccess_token())
-                            .clearMentionStatusUnread(data,
-                                    GlobalContext.getInstance().getAccountBean().getUid());
-                } catch (WeiboException ignored) {
-
-                }
+                    String token = GlobalContext.getInstance().getAccountBean().getAccess_token();
+                    String uid = GlobalContext.getInstance().getAccountBean().getUid();
+                    ClearUnreadDao.clearMentionStatusUnread(token, data, uid);
                 return null;
             }
         }.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);

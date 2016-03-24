@@ -40,11 +40,9 @@ public class MainFriendsTimeLineDao {
         map.put("trim_user", trim_user);
 
         String jsonData = HttpUtility.getInstance().executeNormalTask(HttpMethod.Get, url, map);
-        try {
-            new ClearUnreadDao(access_token, ClearUnreadDao.STATUS).clearUnread();
-        } catch (WeiboException ignored) {
 
-        }
+        ClearUnreadDao.clearUnread(access_token, ClearUnreadDao.STATUS);
+
         return jsonData;
     }
 

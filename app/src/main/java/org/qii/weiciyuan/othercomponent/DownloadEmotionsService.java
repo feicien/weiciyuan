@@ -7,16 +7,21 @@ import android.os.IBinder;
 import android.text.TextUtils;
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.EmotionBean;
-import org.qii.weiciyuan.dao.emotions.EmotionsDao;
 import org.qii.weiciyuan.support.database.DatabaseManager;
 import org.qii.weiciyuan.support.error.WeiboException;
 import org.qii.weiciyuan.support.file.FileLocationMethod;
 import org.qii.weiciyuan.support.file.FileManager;
 import org.qii.weiciyuan.support.http.HttpUtility;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.lib.MyAsyncTask;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -72,9 +77,11 @@ public class DownloadEmotionsService extends Service {
         protected Void doInBackground(Void... params) {
             int now = 0;
             try {
-                EmotionsDao dao = new EmotionsDao(token);
-                List<EmotionBean> list = dao.getEmotions();
 
+                WeiBoService service = RetrofitUtils.createWeiBoService();
+                Call<List<EmotionBean>> call = service.getEmotions(token, "", "");
+                Response<List<EmotionBean>> response = call.execute();
+                List<EmotionBean> list = response.body();
 
                 List<EmotionBean> needList = new ArrayList<EmotionBean>();
 
@@ -87,7 +94,6 @@ public class DownloadEmotionsService extends Service {
                 size = needList.size();
 
                 DatabaseManager.getInstance().addEmotions(needList);
-//                GlobalContext.getInstance().setEmotions(DatabaseManager.getInstance().getEmotionsMap());
 
                 for (EmotionBean bean : needList) {
                     String url = bean.getUrl();
@@ -99,25 +105,8 @@ public class DownloadEmotionsService extends Service {
                 }
 
 
-//                size = list.size();
-//
-//                DatabaseManager.getInstance().addEmotions(list);
-//                GlobalContext.getInstance().setEmotions(DatabaseManager.getInstance().getEmotionsMap());
-//
-//                for (EmotionBean bean : list) {
-//                    String url = bean.getUrl();
-//                    String path = FileManager.getFilePathFromUrl(url, FileLocationMethod.emotion);
-//
-//                    HttpUtility.getInstance().executeDownloadTask(url, path, null);
-//                    now++;
-//                    publishProgress(now);
-//                }
-
-
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-
+            } catch (IOException e1) {
+                e1.printStackTrace();
             }
 
             return null;

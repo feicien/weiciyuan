@@ -11,7 +11,6 @@ import android.view.ViewTreeObserver;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.AccountBean;
@@ -22,13 +21,13 @@ import org.qii.weiciyuan.bean.UserBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
 import org.qii.weiciyuan.bean.android.CommentTimeLineData;
 import org.qii.weiciyuan.bean.android.TimeLinePosition;
-import org.qii.weiciyuan.dao.destroy.DestroyCommentDao;
 import org.qii.weiciyuan.dao.unread.ClearUnreadDao;
 import org.qii.weiciyuan.othercomponent.AppNotificationCenter;
 import org.qii.weiciyuan.othercomponent.unreadnotification.NotificationServiceHelper;
 import org.qii.weiciyuan.support.database.MentionCommentsTimeLineDBTask;
 import org.qii.weiciyuan.support.debug.AppLogger;
-import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.lib.MyAsyncTask;
 import org.qii.weiciyuan.support.lib.TopTipBar;
 import org.qii.weiciyuan.support.utils.GlobalContext;
@@ -44,6 +43,10 @@ import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 import org.qii.weiciyuan.ui.main.MentionsTimeLine;
 
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -63,7 +66,6 @@ public class MentionsCommentTimeLineFragment extends AbstractTimeLineFragment<Co
     private UserBean userBean;
     private String token;
 
-    private RemoveTask removeTask;
 
     private CommentListBean bean = new CommentListBean();
     private TimeLinePosition timeLinePosition;
@@ -263,11 +265,7 @@ public class MentionsCommentTimeLineFragment extends AbstractTimeLineFragment<Co
     @Override
     public void removeItem(int position) {
         clearActionMode();
-        if (removeTask == null || removeTask.getStatus() == MyAsyncTask.Status.FINISHED) {
-            removeTask = new RemoveTask(GlobalContext.getInstance().getSpecialToken(),
-                    getList().getItemList().get(position).getId(), position);
-            removeTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-        }
+        removeComment(GlobalContext.getInstance().getSpecialToken(), getList().getItemList().get(position).getId(), position);
     }
 
     @Override
@@ -275,46 +273,24 @@ public class MentionsCommentTimeLineFragment extends AbstractTimeLineFragment<Co
         clearActionMode();
     }
 
-    class RemoveTask extends MyAsyncTask<Void, Void, Boolean> {
+    private void removeComment(String token, String id, final int positon){
 
-        String token;
-        String id;
-        int positon;
-        WeiboException e;
-
-        public RemoveTask(String token, String id, int positon) {
-            this.token = token;
-            this.id = id;
-            this.positon = positon;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            DestroyCommentDao dao = new DestroyCommentDao(token, id);
-            try {
-                return dao.destroy();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-                return false;
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<CommentBean> call = service.destroyComment(token, id);
+        call.enqueue(new Callback<CommentBean>() {
+            @Override
+            public void onResponse(Call<CommentBean> call, Response<CommentBean> response) {
+                if(response.isSuccessful() && response.body() != null){
+                    ((CommentListAdapter) timeLineAdapter).removeItem(positon);
+                }
             }
-        }
 
-        @Override
-        protected void onCancelled(Boolean aBoolean) {
-            super.onCancelled(aBoolean);
-            if (Utility.isAllNotNull(getActivity(), this.e)) {
-                Toast.makeText(getActivity(), e.getError(), Toast.LENGTH_SHORT).show();
-            }
-        }
+            @Override
+            public void onFailure(Call<CommentBean> call, Throwable t) {
 
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            if (aBoolean) {
-                ((CommentListAdapter) timeLineAdapter).removeItem(positon);
             }
-        }
+        });
+
     }
 
     @Override
@@ -542,14 +518,9 @@ public class MentionsCommentTimeLineFragment extends AbstractTimeLineFragment<Co
 
             @Override
             protected Void doInBackground(Void... params) {
-                try {
-                    new ClearUnreadDao(
-                            GlobalContext.getInstance().getAccountBean().getAccess_token())
-                            .clearMentionCommentUnread(data,
-                                    GlobalContext.getInstance().getAccountBean().getUid());
-                } catch (WeiboException ignored) {
-
-                }
+                String token = GlobalContext.getInstance().getAccountBean().getAccess_token();
+                String uid = GlobalContext.getInstance().getAccountBean().getUid();
+                ClearUnreadDao.clearMentionCommentUnread(token, data, uid);
                 return null;
             }
         }.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);

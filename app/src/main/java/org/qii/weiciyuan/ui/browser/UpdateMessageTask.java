@@ -1,13 +1,5 @@
 package org.qii.weiciyuan.ui.browser;
 
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.dao.show.ShowStatusDao;
-import org.qii.weiciyuan.support.error.ErrorCode;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.text.SpannableString;
@@ -16,6 +8,20 @@ import android.text.style.StrikethroughSpan;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.support.error.ErrorCode;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+
+import java.io.IOException;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -49,12 +55,14 @@ public class UpdateMessageTask extends MyAsyncTask<Void, Void, MessageBean> {
 
     @Override
     protected MessageBean doInBackground(Void... params) {
+        String token = GlobalContext.getInstance().getSpecialToken();
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<MessageBean> call = service.getMsg(token,msg.getId());
         try {
-            return new ShowStatusDao(GlobalContext.getInstance().getSpecialToken(), msg.getId())
-                    .getMsg();
-        } catch (WeiboException e) {
-            this.e = e;
-            cancel(true);
+            Response<MessageBean> response = call.execute();
+            return response.body();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return null;
     }

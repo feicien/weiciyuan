@@ -81,11 +81,7 @@ public class MentionsWeiboTimeLineDao {
 
         MessageListBean value = getGSONMsgListWithoutClearUnread();
 
-        try {
-            new ClearUnreadDao(access_token, ClearUnreadDao.MENTION_STATUS).clearUnread();
-        } catch (WeiboException ignored) {
-
-        }
+        ClearUnreadDao.clearUnread(access_token, ClearUnreadDao.MENTION_STATUS);
 
         return value;
     }

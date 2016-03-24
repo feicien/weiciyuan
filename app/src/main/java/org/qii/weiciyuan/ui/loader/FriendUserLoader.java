@@ -1,13 +1,19 @@
 package org.qii.weiciyuan.ui.loader;
 
-import org.qii.weiciyuan.bean.UserListBean;
-import org.qii.weiciyuan.dao.user.FriendListDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-
 import android.content.Context;
 
+import org.qii.weiciyuan.bean.UserListBean;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.settinghelper.SettingUtility;
+
+import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -21,23 +27,30 @@ public class FriendUserLoader extends AbstractAsyncNetRequestTaskLoader<UserList
     private String uid;
     private String page;
     private String cursor;
+    private String count;
 
     public FriendUserLoader(Context context, String token, String uid, String cursor) {
         super(context);
         this.token = token;
         this.uid = uid;
         this.cursor = cursor;
+        this.count = SettingUtility.getMsgCount();
     }
 
     public UserListBean loadData() throws WeiboException {
-        FriendListDao dao = new FriendListDao(token, uid);
-        dao.setCursor(cursor);
 
         UserListBean result = null;
         lock.lock();
 
         try {
-            result = dao.getGSONMsgList();
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<UserListBean> call = service.getFriendList(token, uid, count,cursor);
+            Response<UserListBean> response = call.execute();
+            result = response.body();
+
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             lock.unlock();
         }

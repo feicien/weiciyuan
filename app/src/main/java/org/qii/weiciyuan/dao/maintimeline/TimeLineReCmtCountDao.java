@@ -22,7 +22,8 @@ import java.util.Map;
  */
 public class TimeLineReCmtCountDao {
 
-    private String getJson() throws WeiboException {
+
+    public List<MessageReCmtCountBean> get() throws WeiboException {
         String url = URLHelper.TIMELINE_RE_CMT_COUNT;
 
         Map<String, String> map = new HashMap<String, String>();
@@ -34,11 +35,7 @@ public class TimeLineReCmtCountDao {
 
         map.put("ids", idsBuilder.toString());
 
-        return HttpUtility.getInstance().executeNormalTask(HttpMethod.Get, url, map);
-    }
-
-    public List<MessageReCmtCountBean> get() throws WeiboException {
-        String json = getJson();
+        String json = HttpUtility.getInstance().executeNormalTask(HttpMethod.Get, url, map);
 
         List<MessageReCmtCountBean> value = null;
         try {

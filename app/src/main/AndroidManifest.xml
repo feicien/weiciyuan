@@ -228,23 +228,8 @@
         <service android:name=".othercomponent.sendweiboservice.SendCommentService"/>
         <service android:name=".othercomponent.sendweiboservice.SendReplyToCommentService"/>
 
-        <service
-                android:name=".othercomponent.unreadnotification.JBMentionsWeiboNotificationServiceHelper"/>
-        <service
-                android:name=".othercomponent.unreadnotification.JBMentionsCommentNotificationServiceHelper"/>
-        <service
-                android:name=".othercomponent.unreadnotification.JBCommentsToMeNotificationServiceHelper"/>
         <service android:name=".othercomponent.unreadnotification.BigTextNotificationService"/>
-        <service android:name=".othercomponent.unreadnotification.SimpleTextNotificationService"/>
 
-        <!---broadcast receiver -->
-        <!--<receiver-->
-                <!--android:exported="false"-->
-                <!--android:name=".othercomponent.unreadnotification.UnreadMsgReceiver">-->
-            <!--<intent-filter>-->
-                <!--<action android:name="org.qii.weiciyuan.newmsg.priority"/>-->
-            <!--</intent-filter>-->
-        <!--</receiver>-->
         <receiver
                 android:name=".othercomponent.ConnectionChangeReceiver"
                 android:label="NetworkConnection">
@@ -260,7 +245,6 @@
                 android:authorities="${applicationId}.ui.search.SearchSuggestionProvider"/>
 
         <!--black magic-->
-        <activity android:name=".ui.blackmagic.BlackMagicActivity"/>
 
         <!-- dm -->
         <activity android:name=".ui.dm.DMActivity"/>

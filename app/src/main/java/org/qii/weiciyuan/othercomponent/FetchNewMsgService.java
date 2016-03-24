@@ -1,15 +1,17 @@
 package org.qii.weiciyuan.othercomponent;
 
+import android.app.IntentService;
+import android.content.Intent;
+import android.os.IBinder;
+
 import org.qii.weiciyuan.bean.AccountBean;
+import org.qii.weiciyuan.bean.CommentBean;
 import org.qii.weiciyuan.bean.CommentListBean;
 import org.qii.weiciyuan.bean.MessageListBean;
 import org.qii.weiciyuan.bean.UnreadBean;
 import org.qii.weiciyuan.bean.android.CommentTimeLineData;
 import org.qii.weiciyuan.bean.android.MentionTimeLineData;
-import org.qii.weiciyuan.dao.maintimeline.MainCommentsTimeLineDao;
-import org.qii.weiciyuan.dao.maintimeline.MentionsCommentTimeLineDao;
 import org.qii.weiciyuan.dao.maintimeline.MentionsWeiboTimeLineDao;
-import org.qii.weiciyuan.dao.unread.UnreadDao;
 import org.qii.weiciyuan.support.database.AccountDBTask;
 import org.qii.weiciyuan.support.database.CommentToMeTimeLineDBTask;
 import org.qii.weiciyuan.support.database.MentionCommentsTimeLineDBTask;
@@ -17,15 +19,19 @@ import org.qii.weiciyuan.support.database.MentionWeiboTimeLineDBTask;
 import org.qii.weiciyuan.support.database.NotificationDBTask;
 import org.qii.weiciyuan.support.debug.AppLogger;
 import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.settinghelper.SettingUtility;
 import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.TimeUtility;
 
-import android.app.IntentService;
-import android.content.Intent;
-import android.os.IBinder;
-
+import java.io.IOException;
 import java.util.Calendar;
+import java.util.Iterator;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: Jiang Qi
@@ -95,6 +101,8 @@ public class FetchNewMsgService extends IntentService {
                 fetchMsg(account);
             } catch (WeiboException e) {
                 e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
         AppLogger.i("FetchNewMsgService finished");
@@ -106,7 +114,7 @@ public class FetchNewMsgService extends IntentService {
         return hour >= NIGHT_START_TIME_HOUR && hour <= NIGHT_END_TIME_HOUR;
     }
 
-    private void fetchMsg(AccountBean accountBean) throws WeiboException {
+    private void fetchMsg(AccountBean accountBean) throws WeiboException, IOException {
         CommentListBean commentResult = null;
         MessageListBean mentionStatusesResult = null;
         CommentListBean mentionCommentsResult = null;
@@ -114,8 +122,11 @@ public class FetchNewMsgService extends IntentService {
 
         String token = accountBean.getAccess_token();
 
-        UnreadDao unreadDao = new UnreadDao(token, accountBean.getUid());
-        unreadBean = unreadDao.getCount();
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<UnreadBean> call = service.getUnReadCount(token, accountBean.getUid());
+        Response<UnreadBean> response = call.execute();
+        unreadBean = response.body();
+
         if (unreadBean == null) {
             return;
         }
@@ -124,18 +135,36 @@ public class FetchNewMsgService extends IntentService {
         int unreadMentionCommentCount = unreadBean.getMention_cmt();
 
         if (unreadCommentCount > 0 && SettingUtility.allowCommentToMe()) {
-            MainCommentsTimeLineDao dao = new MainCommentsTimeLineDao(token);
+
             CommentListBean oldData = null;
-            CommentTimeLineData commentTimeLineData = CommentToMeTimeLineDBTask
-                    .getCommentLineMsgList(accountBean.getUid());
+            CommentTimeLineData commentTimeLineData = CommentToMeTimeLineDBTask.getCommentLineMsgList(accountBean.getUid());
             if (commentTimeLineData != null) {
                 oldData = commentTimeLineData.cmtList;
             }
+            String sinceId = null;
+            String count = SettingUtility.getMsgCount();
             if (oldData != null && oldData.getSize() > 0) {
-                dao.setSince_id(oldData.getItem(0).getId());
+                sinceId = oldData.getItem(0).getId();
             }
 
-            commentResult = dao.getGSONMsgListWithoutClearUnread();
+            Call<CommentListBean> call2 = service.getCommentToMe(token, sinceId,"",count);
+            Response<CommentListBean> response2 = call2.execute();
+            commentResult = response2.body();
+            if (commentResult != null && commentResult.getSize() > 0) {
+                List<CommentBean> msgList = commentResult.getItemList();
+                Iterator<CommentBean> iterator = msgList.iterator();
+                while (iterator.hasNext()) {
+
+                    CommentBean msg = iterator.next();
+                    if (msg.getUser() == null) {
+                        iterator.remove();
+                    } else {
+                        msg.getListViewSpannableString();
+                        TimeUtility.dealMills(msg);
+                    }
+                }
+            }
+
         }
 
         if (unreadMentionStatusCount > 0 && SettingUtility.allowMentionToMe()) {
@@ -153,17 +182,37 @@ public class FetchNewMsgService extends IntentService {
         }
 
         if (unreadMentionCommentCount > 0 && SettingUtility.allowMentionCommentToMe()) {
-            MainCommentsTimeLineDao dao = new MentionsCommentTimeLineDao(token);
+
             CommentListBean oldData = null;
-            CommentTimeLineData commentTimeLineData = MentionCommentsTimeLineDBTask
-                    .getCommentLineMsgList(accountBean.getUid());
+            CommentTimeLineData commentTimeLineData = MentionCommentsTimeLineDBTask.getCommentLineMsgList(accountBean.getUid());
             if (commentTimeLineData != null) {
                 oldData = commentTimeLineData.cmtList;
             }
+            String sinceId = null;
+            String count = SettingUtility.getMsgCount();
             if (oldData != null && oldData.getSize() > 0) {
-                dao.setSince_id(oldData.getItem(0).getId());
+                sinceId = oldData.getItem(0).getId();
             }
-            mentionCommentsResult = dao.getGSONMsgListWithoutClearUnread();
+
+            Call<CommentListBean> call3 = service.getMentionToMe(token, sinceId,"",count);
+            Response<CommentListBean> response3 = call3.execute();
+            mentionCommentsResult = response3.body();
+
+            if (mentionCommentsResult != null && mentionCommentsResult.getSize() > 0) {
+                List<CommentBean> msgList = mentionCommentsResult.getItemList();
+                Iterator<CommentBean> iterator = msgList.iterator();
+                while (iterator.hasNext()) {
+
+                    CommentBean msg = iterator.next();
+                    if (msg.getUser() == null) {
+                        iterator.remove();
+                    } else {
+                        msg.getListViewSpannableString();
+                        TimeUtility.dealMills(msg);
+                    }
+                }
+            }
+
         }
 
         clearDatabaseUnreadInfo(accountBean.getUid(), unreadBean.getMention_status(),
@@ -178,11 +227,6 @@ public class FetchNewMsgService extends IntentService {
         if (mentionsWeibo || mentionsComment || commentsToMe) {
             sendTwoKindsOfBroadcast(accountBean, commentResult, mentionStatusesResult,
                     mentionCommentsResult, unreadBean);
-        } else {
-//            NotificationManager notificationManager = (NotificationManager) getApplicationContext()
-//                    .getSystemService(NOTIFICATION_SERVICE);
-//            notificationManager.cancel(
-//                    NotificationServiceHelper.getMentionsWeiboNotificationId(accountBean));
         }
     }
 

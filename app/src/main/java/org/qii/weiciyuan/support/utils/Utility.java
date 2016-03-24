@@ -1,27 +1,5 @@
 package org.qii.weiciyuan.support.utils;
 
-import org.qii.weiciyuan.BuildConfig;
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.AccountBean;
-import org.qii.weiciyuan.bean.CommentBean;
-import org.qii.weiciyuan.bean.GeoBean;
-import org.qii.weiciyuan.bean.ItemBean;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.bean.android.TimeLinePosition;
-import org.qii.weiciyuan.othercomponent.unreadnotification.NotificationServiceHelper;
-import org.qii.weiciyuan.support.debug.AppLogger;
-import org.qii.weiciyuan.support.file.FileLocationMethod;
-import org.qii.weiciyuan.support.file.FileManager;
-import org.qii.weiciyuan.support.imageutility.ImageUtility;
-import org.qii.weiciyuan.support.lib.HeaderListView;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.lib.RecordOperationAppBroadcastReceiver;
-import org.qii.weiciyuan.support.settinghelper.SettingUtility;
-import org.qii.weiciyuan.ui.blackmagic.BlackMagicActivity;
-import org.qii.weiciyuan.ui.login.AccountActivity;
-import org.qii.weiciyuan.ui.login.OAuthActivity;
-import org.qii.weiciyuan.ui.login.SSOActivity;
-
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -77,6 +55,27 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ShareActionProvider;
 import android.widget.TextView;
+
+import org.qii.weiciyuan.BuildConfig;
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.AccountBean;
+import org.qii.weiciyuan.bean.CommentBean;
+import org.qii.weiciyuan.bean.GeoBean;
+import org.qii.weiciyuan.bean.ItemBean;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.bean.android.TimeLinePosition;
+import org.qii.weiciyuan.othercomponent.unreadnotification.NotificationServiceHelper;
+import org.qii.weiciyuan.support.debug.AppLogger;
+import org.qii.weiciyuan.support.file.FileLocationMethod;
+import org.qii.weiciyuan.support.file.FileManager;
+import org.qii.weiciyuan.support.imageutility.ImageUtility;
+import org.qii.weiciyuan.support.lib.HeaderListView;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.lib.RecordOperationAppBroadcastReceiver;
+import org.qii.weiciyuan.support.settinghelper.SettingUtility;
+import org.qii.weiciyuan.ui.login.AccountActivity;
+import org.qii.weiciyuan.ui.login.OAuthActivity;
+import org.qii.weiciyuan.ui.login.SSOActivity;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -890,9 +889,6 @@ public class Utility {
                 return;
             }
             if (activity.getClass() == OAuthActivity.class) {
-                return;
-            }
-            if (activity.getClass() == BlackMagicActivity.class) {
                 return;
             }
 

@@ -27,18 +27,20 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.CommentBean;
 import org.qii.weiciyuan.bean.CommentListBean;
 import org.qii.weiciyuan.bean.GeoBean;
 import org.qii.weiciyuan.bean.MessageBean;
 import org.qii.weiciyuan.bean.RepostListBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
-import org.qii.weiciyuan.dao.destroy.DestroyCommentDao;
 import org.qii.weiciyuan.support.asyncdrawable.IWeiciyuanDrawable;
 import org.qii.weiciyuan.support.asyncdrawable.MsgDetailReadWorker;
 import org.qii.weiciyuan.support.asyncdrawable.TimeLineBitmapDownloader;
 import org.qii.weiciyuan.support.error.WeiboException;
 import org.qii.weiciyuan.support.file.FileLocationMethod;
 import org.qii.weiciyuan.support.gallery.GalleryAnimationActivity;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.lib.AnimationRect;
 import org.qii.weiciyuan.support.lib.ClickableTextViewMentionLinkOnTouchListener;
 import org.qii.weiciyuan.support.lib.MyAsyncTask;
@@ -63,6 +65,10 @@ import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
 
 import java.util.ArrayList;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 /**
  * User: qii
  * Date: 12-9-1
@@ -77,7 +83,6 @@ public class BrowserWeiboMsgFragment extends AbstractAppFragment implements IRem
     private UpdateMessageTask updateMsgTask;
     private GetWeiboLocationInfoTask geoTask;
     private MsgDetailReadWorker picTask;
-    private RemoveTask removeTask;
 
     private Handler handler = new Handler();
 
@@ -584,11 +589,7 @@ public class BrowserWeiboMsgFragment extends AbstractAppFragment implements IRem
         if (!isCommentList) {
             return;
         }
-        if (removeTask == null || removeTask.getStatus() == MyAsyncTask.Status.FINISHED) {
-            removeTask = new RemoveTask(GlobalContext.getInstance().getSpecialToken(),
-                    commentList.getItemList().get(position).getId(), position);
-            removeTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-        }
+        removeComment(GlobalContext.getInstance().getSpecialToken(), commentList.getItemList().get(position).getId(), position);
     }
 
     @Override
@@ -1112,45 +1113,24 @@ public class BrowserWeiboMsgFragment extends AbstractAppFragment implements IRem
         }
     };
 
-    class RemoveTask extends MyAsyncTask<Void, Void, Boolean> {
 
-        String token;
-        String id;
-        int positon;
-        WeiboException e;
+    private void removeComment(String token, String id, final int positon){
 
-        public RemoveTask(String token, String id, int positon) {
-            this.token = token;
-            this.id = id;
-            this.positon = positon;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            DestroyCommentDao dao = new DestroyCommentDao(token, id);
-            try {
-                return dao.destroy();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-                return false;
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<CommentBean> call = service.destroyComment(token, id);
+        call.enqueue(new Callback<CommentBean>() {
+            @Override
+            public void onResponse(Call<CommentBean> call, Response<CommentBean> response) {
+                if(response.isSuccessful() && response.body() != null){
+                    adapter.removeCommentItem(positon);
+                }
             }
-        }
 
-        @Override
-        protected void onCancelled(Boolean aBoolean) {
-            super.onCancelled(aBoolean);
-            if (Utility.isAllNotNull(getActivity(), this.e)) {
-                Toast.makeText(getActivity(), e.getError(), Toast.LENGTH_SHORT).show();
-            }
-        }
+            @Override
+            public void onFailure(Call<CommentBean> call, Throwable t) {
 
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            if (aBoolean) {
-                adapter.removeCommentItem(positon);
             }
-        }
+        });
+
     }
 }

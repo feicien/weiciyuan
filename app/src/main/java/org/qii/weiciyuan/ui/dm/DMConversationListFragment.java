@@ -1,26 +1,5 @@
 package org.qii.weiciyuan.ui.dm;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.DMBean;
-import org.qii.weiciyuan.bean.DMListBean;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
-import org.qii.weiciyuan.dao.dm.SendDMDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.lib.pulltorefresh.PullToRefreshBase;
-import org.qii.weiciyuan.support.lib.pulltorefresh.PullToRefreshListView;
-import org.qii.weiciyuan.support.smileypicker.SmileyPicker;
-import org.qii.weiciyuan.support.utils.AppConfig;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.SmileyPickerUtility;
-import org.qii.weiciyuan.ui.adapter.DMConversationAdapter;
-import org.qii.weiciyuan.ui.basefragment.AbstractTimeLineFragment;
-import org.qii.weiciyuan.ui.common.QuickSendProgressFragment;
-import org.qii.weiciyuan.ui.loader.DMConversationLoader;
-
-import android.content.DialogInterface;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.content.Loader;
@@ -40,8 +19,31 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.DMBean;
+import org.qii.weiciyuan.bean.DMListBean;
+import org.qii.weiciyuan.bean.ResultBean;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.pulltorefresh.PullToRefreshBase;
+import org.qii.weiciyuan.support.lib.pulltorefresh.PullToRefreshListView;
+import org.qii.weiciyuan.support.smileypicker.SmileyPicker;
+import org.qii.weiciyuan.support.utils.AppConfig;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.SmileyPickerUtility;
+import org.qii.weiciyuan.ui.adapter.DMConversationAdapter;
+import org.qii.weiciyuan.ui.basefragment.AbstractTimeLineFragment;
+import org.qii.weiciyuan.ui.common.QuickSendProgressFragment;
+import org.qii.weiciyuan.ui.loader.DMConversationLoader;
+
 import java.util.Collections;
 import java.util.Comparator;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -264,7 +266,7 @@ public class DMConversationListFragment extends AbstractTimeLineFragment<DMListB
             return;
         }
 
-        new QuickCommentTask().executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+        quickComment();
     }
 
     @Override
@@ -295,63 +297,53 @@ public class DMConversationListFragment extends AbstractTimeLineFragment<DMListB
         }
     }
 
-    private class QuickCommentTask extends AsyncTask<Void, Void, Boolean> {
+    private void quickComment(){
 
-        WeiboException e;
-        QuickSendProgressFragment progressFragment = new QuickSendProgressFragment();
+        final QuickSendProgressFragment progressFragment = new QuickSendProgressFragment();
 
-        @Override
-        protected void onPreExecute() {
-            progressFragment.onCancel(new DialogInterface() {
+//        progressFragment.onCancel(new DialogInterface() {
+//
+//            @Override
+//            public void cancel() {
+//                QuickCommentTask.this.cancel(true);
+//            }
+//
+//            @Override
+//            public void dismiss() {
+//                QuickCommentTask.this.cancel(true);
+//            }
+//        });
 
-                @Override
-                public void cancel() {
-                    QuickCommentTask.this.cancel(true);
+        progressFragment.show(getFragmentManager(), "");
+
+        String token = GlobalContext.getInstance().getSpecialToken();
+        String uid = userBean.getId();
+        String text = et.getText().toString();
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<ResultBean> call = service.send(token, text, uid);
+        call.enqueue(new Callback<ResultBean>() {
+            @Override
+            public void onResponse(Call<ResultBean> call, Response<ResultBean> response) {
+                progressFragment.dismissAllowingStateLoss();
+                if (response.isSuccessful() && response.body()!=null) {
+                    et.setText("");
+                    loadNewMsg();
+                } else {
+                    Toast.makeText(getActivity(), getString(R.string.send_failed), Toast.LENGTH_SHORT).show();
                 }
-
-                @Override
-                public void dismiss() {
-                    QuickCommentTask.this.cancel(true);
-                }
-            });
-
-            progressFragment.show(getFragmentManager(), "");
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            SendDMDao dao = new SendDMDao(GlobalContext.getInstance().getSpecialToken(),
-                    userBean.getId(), et.getText().toString());
-            try {
-                return dao.send();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-                return false;
             }
-        }
 
-        @Override
-        protected void onCancelled(Boolean commentBean) {
-            super.onCancelled(commentBean);
-            progressFragment.dismissAllowingStateLoss();
-            if (this.e != null) {
-                Toast.makeText(getActivity(), e.getError(), Toast.LENGTH_SHORT).show();
+            @Override
+            public void onFailure(Call<ResultBean> call, Throwable t) {
+                progressFragment.dismissAllowingStateLoss();
+//                if (this.e != null) {
+//                    Toast.makeText(getActivity(), e.getError(), Toast.LENGTH_SHORT).show();
+//                }
             }
-        }
+        });
 
-        @Override
-        protected void onPostExecute(Boolean s) {
-            progressFragment.dismissAllowingStateLoss();
-            if (s != null) {
-                et.setText("");
-                loadNewMsg();
-            } else {
-                Toast.makeText(getActivity(), getString(R.string.send_failed), Toast.LENGTH_SHORT)
-                        .show();
-            }
-            super.onPostExecute(s);
-        }
+
     }
 
     public boolean isSmileyPanelClosed() {

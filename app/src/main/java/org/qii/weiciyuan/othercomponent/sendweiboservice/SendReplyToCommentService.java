@@ -1,20 +1,5 @@
 package org.qii.weiciyuan.othercomponent.sendweiboservice;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.AccountBean;
-import org.qii.weiciyuan.bean.CommentBean;
-import org.qii.weiciyuan.dao.send.ReplyToCommentMsgDao;
-import org.qii.weiciyuan.dao.send.RepostNewMsgDao;
-import org.qii.weiciyuan.support.database.DraftDBManager;
-import org.qii.weiciyuan.support.database.draftbean.ReplyDraftBean;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.AppEventAction;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.NotificationUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.send.WriteReplyToCommentActivity;
-
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -25,10 +10,31 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.AccountBean;
+import org.qii.weiciyuan.bean.CommentBean;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.dao.URLHelper;
+import org.qii.weiciyuan.support.database.DraftDBManager;
+import org.qii.weiciyuan.support.database.draftbean.ReplyDraftBean;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.AppEventAction;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.NotificationUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.send.WriteReplyToCommentActivity;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -142,14 +148,30 @@ public class SendReplyToCommentService extends Service {
         }
 
         private void sendText() throws WeiboException {
-            ReplyToCommentMsgDao dao = new ReplyToCommentMsgDao(token, oriMsg, content);
-            CommentBean commentBean = dao.reply();
+
+            String cid = oriMsg.getId();
+            String id = oriMsg.getStatus().getId();
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<CommentBean> call = service.replyComment(token, id,cid, content);
+
+            try {
+                Response<CommentBean> response = call.execute();
+                response.body();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
 
             if (!TextUtils.isEmpty(repostContent)) {
-                RepostNewMsgDao repostNewMsgDao = new RepostNewMsgDao(token,
-                        oriMsg.getStatus().getId());
-                repostNewMsgDao.setStatus(content);
-                repostNewMsgDao.sendNewMsg();
+
+                Call<MessageBean> call2 = service.sendNewMsg(token, oriMsg.getStatus().getId(), content, URLHelper.DISABLE_COMMENT);
+                try {
+                    Response<MessageBean> response2 = call2.execute();
+                    response2.body();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+
             }
         }
 

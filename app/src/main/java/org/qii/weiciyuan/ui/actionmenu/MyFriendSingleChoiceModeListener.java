@@ -1,26 +1,27 @@
 package org.qii.weiciyuan.ui.actionmenu;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.dao.relationship.FriendshipsDao;
-import org.qii.weiciyuan.support.debug.AppLogger;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.ui.adapter.UserListAdapter;
-import org.qii.weiciyuan.ui.basefragment.AbstractUserListFragment;
-import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.support.v4.app.Fragment;
-import android.text.TextUtils;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.ui.adapter.UserListAdapter;
+import org.qii.weiciyuan.ui.basefragment.AbstractUserListFragment;
+import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -33,16 +34,12 @@ public class MyFriendSingleChoiceModeListener implements ActionMode.Callback {
     private ActionMode mode;
     private UserBean bean;
 
-    private UnFollowTask unfollowTask;
 
     public void finish() {
         if (mode != null) {
             mode.finish();
         }
 
-        if (unfollowTask != null) {
-            unfollowTask.cancel(true);
-        }
     }
 
     public MyFriendSingleChoiceModeListener(ListView listView, UserListAdapter adapter,
@@ -88,11 +85,7 @@ public class MyFriendSingleChoiceModeListener implements ActionMode.Callback {
                 mode.finish();
                 break;
             case R.id.menu_unfollow:
-                if (unfollowTask == null
-                        || unfollowTask.getStatus() == MyAsyncTask.Status.FINISHED) {
-                    unfollowTask = new UnFollowTask();
-                    unfollowTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
+                unFollow();
                 listView.clearChoices();
                 mode.finish();
                 break;
@@ -108,44 +101,28 @@ public class MyFriendSingleChoiceModeListener implements ActionMode.Callback {
         ((AbstractUserListFragment) fragment).setmActionMode(null);
     }
 
-    private class UnFollowTask extends MyAsyncTask<Void, UserBean, UserBean> {
-        WeiboException e;
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
+    private void unFollow(){
+        String token = GlobalContext.getInstance().getSpecialToken();
+        String uid = bean.getId();
+        String screen_name = bean.getScreen_name();
 
-        @Override
-        protected UserBean doInBackground(Void... params) {
-            FriendshipsDao dao = new FriendshipsDao(GlobalContext.getInstance().getSpecialToken());
-            if (!TextUtils.isEmpty(bean.getId())) {
-                dao.setUid(bean.getId());
-            } else {
-                dao.setScreen_name(bean.getScreen_name());
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<UserBean> call = service.unFollowFan(token, uid, screen_name);
+        call.enqueue(new Callback<UserBean>() {
+            @Override
+            public void onResponse(Call<UserBean> call, Response<UserBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(getActivity(), getActivity().getString(R.string.unfollow_successfully),
+                            Toast.LENGTH_SHORT).show();
+                    adapter.removeItem(bean);
+                }
             }
 
-            try {
-                return dao.unFollowIt();
-            } catch (WeiboException e) {
-                AppLogger.e(e.getError());
-                this.e = e;
-                cancel(true);
-                return null;
+            @Override
+            public void onFailure(Call<UserBean> call, Throwable t) {
+
             }
-        }
-
-        @Override
-        protected void onCancelled(UserBean userBean) {
-            super.onCancelled(userBean);
-        }
-
-        @Override
-        protected void onPostExecute(UserBean o) {
-            super.onPostExecute(o);
-            Toast.makeText(getActivity(), getActivity().getString(R.string.unfollow_successfully),
-                    Toast.LENGTH_SHORT).show();
-            adapter.removeItem(bean);
-        }
+        });
     }
 }

@@ -204,7 +204,6 @@
     <string name="remove_successfully">删除成功</string>
     <string name="add_account">添加</string>
     <string name="oauth_login">网页授权</string>
-    <string name="hack_login">黑魔法授权</string>
     <string name="official_app_login">官方客户端授权</string>
     <string name="login">授权</string>
     <string name="logining">授权中</string>

@@ -1,19 +1,5 @@
 package org.qii.weiciyuan.ui.userinfo;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.dao.show.ShowUserDao;
-import org.qii.weiciyuan.dao.user.EditMyProfileDao;
-import org.qii.weiciyuan.support.asyncdrawable.ProfileAvatarReadWorker;
-import org.qii.weiciyuan.support.database.AccountDBTask;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.imageutility.ImageUtility;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -35,6 +21,25 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.dao.user.EditMyProfileDao;
+import org.qii.weiciyuan.support.asyncdrawable.ProfileAvatarReadWorker;
+import org.qii.weiciyuan.support.database.AccountDBTask;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.imageutility.ImageUtility;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -275,7 +280,7 @@ public class EditMyProfileActivity extends AbstractAppActivity
             if (userBean != null) {
                 Toast.makeText(EditMyProfileActivity.this, R.string.edit_successfully,
                         Toast.LENGTH_SHORT).show();
-                new RefreshTask().executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+                refresh();
             }
         }
 
@@ -342,42 +347,38 @@ public class EditMyProfileActivity extends AbstractAppActivity
         }
     }
 
-    private class RefreshTask extends MyAsyncTask<Object, UserBean, UserBean> {
+    private void refresh(){
 
-        WeiboException e;
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        String token = GlobalContext.getInstance().getSpecialToken();
+        String uid = GlobalContext.getInstance().getAccountBean().getUid();
 
-        @Override
-        protected UserBean doInBackground(Object... params) {
-            UserBean user = null;
-            try {
-                ShowUserDao dao = new ShowUserDao(GlobalContext.getInstance().getSpecialToken());
-                dao.setUid(GlobalContext.getInstance().getAccountBean().getUid());
-                user = dao.getUserInfo();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
+        Call<UserBean> call = service.getUserShow(token, uid,"");
+        call.enqueue(new Callback<UserBean>() {
+            @Override
+            public void onResponse(Call<UserBean> call, Response<UserBean> response) {
+
+                if(response.isSuccessful()) {
+                 UserBean user = response.body();
+                    if (user != null) {
+                        AccountDBTask.updateMyProfile(GlobalContext.getInstance().getAccountBean(), user);
+
+                        stopSaveAnimation();
+                        GlobalContext.getInstance().updateUserInfo(userBean);
+                        finish();
+                    }
+                }
+
             }
-            if (user != null) {
-                AccountDBTask.updateMyProfile(GlobalContext.getInstance().getAccountBean(), user);
-            } else {
-                cancel(true);
+
+            @Override
+            public void onFailure(Call<UserBean> call, Throwable t) {
+//                Toast.makeText(EditMyProfileActivity.this, e.getError(), Toast.LENGTH_SHORT).show();
+                stopSaveAnimation();
             }
-            return user;
-        }
+        });
 
-        @Override
-        protected void onCancelled(UserBean userBean) {
-            super.onCancelled(userBean);
-            Toast.makeText(EditMyProfileActivity.this, e.getError(), Toast.LENGTH_SHORT).show();
-            stopSaveAnimation();
-        }
-
-        @Override
-        protected void onPostExecute(UserBean userBean) {
-            super.onPostExecute(userBean);
-            stopSaveAnimation();
-            GlobalContext.getInstance().updateUserInfo(userBean);
-            finish();
-        }
     }
+
+
 }

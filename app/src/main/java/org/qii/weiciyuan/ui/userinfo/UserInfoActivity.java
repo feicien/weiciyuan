@@ -19,20 +19,13 @@ import android.widget.Toast;
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.UserBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
-import org.qii.weiciyuan.dao.group.ModifyGroupMemberDao;
-import org.qii.weiciyuan.dao.relationship.FanDao;
-import org.qii.weiciyuan.dao.relationship.FriendshipsDao;
-import org.qii.weiciyuan.dao.show.ShowUserDao;
-import org.qii.weiciyuan.dao.user.RemarkDao;
 import org.qii.weiciyuan.support.database.FilterDBTask;
-import org.qii.weiciyuan.support.debug.AppLogger;
-import org.qii.weiciyuan.support.error.ErrorCode;
 import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.utils.AnimationUtility;
 import org.qii.weiciyuan.support.utils.GlobalContext;
 import org.qii.weiciyuan.support.utils.ThemeUtility;
-import org.qii.weiciyuan.support.utils.Utility;
 import org.qii.weiciyuan.ui.common.CommonErrorDialogFragment;
 import org.qii.weiciyuan.ui.common.CommonProgressDialogFragment;
 import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
@@ -40,7 +33,11 @@ import org.qii.weiciyuan.ui.loader.AbstractAsyncNetRequestTaskLoader;
 import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
 
-import java.util.List;
+import java.io.IOException;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: Jiang Qi
@@ -53,8 +50,6 @@ public class UserInfoActivity extends AbstractAppActivity {
     private String token;
     private UserBean bean;
 
-    private MyAsyncTask<Void, UserBean, UserBean> followOrUnfollowTask;
-    private ModifyGroupMemberTask modifyGroupMemberTask;
 
     public String getToken() {
         if (TextUtils.isEmpty(token)) {
@@ -71,16 +66,6 @@ public class UserInfoActivity extends AbstractAppActivity {
         this.bean = bean;
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Utility.cancelTasks(followOrUnfollowTask, modifyGroupMemberTask);
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -264,25 +249,13 @@ public class UserInfoActivity extends AbstractAppActivity {
                 dialog.show(getFragmentManager(), "");
                 break;
             case R.id.menu_follow:
-                if (followOrUnfollowTask == null
-                        || followOrUnfollowTask.getStatus() == MyAsyncTask.Status.FINISHED) {
-                    followOrUnfollowTask = new FollowTask();
-                    followOrUnfollowTask.execute();
-                }
+                follow();
                 break;
             case R.id.menu_unfollow:
-                if (followOrUnfollowTask == null
-                        || followOrUnfollowTask.getStatus() == MyAsyncTask.Status.FINISHED) {
-                    followOrUnfollowTask = new UnFollowTask();
-                    followOrUnfollowTask.execute();
-                }
+                unFollow();
                 break;
             case R.id.menu_remove_fan:
-                if (followOrUnfollowTask == null
-                        || followOrUnfollowTask.getStatus() == MyAsyncTask.Status.FINISHED) {
-                    followOrUnfollowTask = new RemoveFanTask();
-                    followOrUnfollowTask.execute();
-                }
+                removeFan();
                 break;
             case R.id.menu_add_to_app_filter:
                 if (!TextUtils.isEmpty(bean.getScreen_name())) {
@@ -299,7 +272,24 @@ public class UserInfoActivity extends AbstractAppActivity {
     }
 
     public void updateRemark(String remark) {
-        new UpdateRemarkTask(remark).executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<UserBean> call = service.updateRemark(getToken(), bean.getId(),remark);
+        call.enqueue(new Callback<UserBean>() {
+            @Override
+            public void onResponse(Call<UserBean> call, Response<UserBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    bean = response.body();
+                    if (getInfoFragment() != null) {
+                        getInfoFragment().forceReloadData(bean);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<UserBean> call, Throwable t) {
+
+            }
+        });
     }
 
     private UserInfoFragment getInfoFragment() {
@@ -312,228 +302,85 @@ public class UserInfoActivity extends AbstractAppActivity {
         dialog.show(getSupportFragmentManager(), "");
     }
 
-    public void handleGroup(List<String> add, List<String> remove) {
-        if (Utility.isTaskStopped(modifyGroupMemberTask)) {
-            modifyGroupMemberTask = new ModifyGroupMemberTask(add, remove);
-            modifyGroupMemberTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-        }
-    }
 
-    private class ModifyGroupMemberTask extends MyAsyncTask<Void, Void, Void> {
 
-        List<String> add;
-        List<String> remove;
+    private void follow(){
+        String token = GlobalContext.getInstance().getSpecialToken();
+        String uid = bean.getId();
+        String screen_name = bean.getScreen_name();
 
-        public ModifyGroupMemberTask(List<String> add, List<String> remove) {
-            this.add = add;
-            this.remove = remove;
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            ModifyGroupMemberDao dao = new ModifyGroupMemberDao(token, bean.getId());
-            for (String id : add) {
-                try {
-                    dao.add(id);
-                } catch (WeiboException e) {
-                    AppLogger.e(e.getMessage());
-                    cancel(true);
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<UserBean> call = service.followFan(token, uid, screen_name);
+        call.enqueue(new Callback<UserBean>() {
+            @Override
+            public void onResponse(Call<UserBean> call, Response<UserBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(UserInfoActivity.this, getString(R.string.follow_successfully),
+                            Toast.LENGTH_SHORT).show();
+                    bean = response.body();
+                    bean.setFollowing(true);
+                    invalidateOptionsMenu();
+                    manageGroup();
                 }
             }
-            for (String id : remove) {
-                try {
-                    dao.delete(id);
-                } catch (WeiboException e) {
-                    AppLogger.e(e.getMessage());
-                    cancel(true);
+
+            @Override
+            public void onFailure(Call<UserBean> call, Throwable t) {
+
+            }
+        });
+    }
+
+    private void unFollow(){
+        String token = GlobalContext.getInstance().getSpecialToken();
+        String uid = bean.getId();
+        String screen_name = bean.getScreen_name();
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<UserBean> call = service.unFollowFan(token, uid, screen_name);
+        call.enqueue(new Callback<UserBean>() {
+            @Override
+            public void onResponse(Call<UserBean> call, Response<UserBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(UserInfoActivity.this, getString(R.string.unfollow_successfully),
+                            Toast.LENGTH_SHORT).show();
+                    bean = response.body();
+                    bean.setFollowing(false);
+                    invalidateOptionsMenu();
                 }
             }
-            return null;
-        }
 
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-            Toast.makeText(UserInfoActivity.this, getString(R.string.modify_successfully),
-                    Toast.LENGTH_SHORT).show();
-        }
+            @Override
+            public void onFailure(Call<UserBean> call, Throwable t) {
+
+            }
+        });
     }
 
-    private class UnFollowTask extends MyAsyncTask<Void, UserBean, UserBean> {
 
-        WeiboException e;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected UserBean doInBackground(Void... params) {
-
-            FriendshipsDao dao = new FriendshipsDao(getToken());
-            if (!TextUtils.isEmpty(bean.getId())) {
-                dao.setUid(bean.getId());
-            } else {
-                dao.setScreen_name(bean.getScreen_name());
-            }
-
-            try {
-                return dao.unFollowIt();
-            } catch (WeiboException e) {
-                AppLogger.e(e.getError());
-                this.e = e;
-                cancel(true);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onCancelled(UserBean userBean) {
-            super.onCancelled(userBean);
-        }
-
-        @Override
-        protected void onPostExecute(UserBean o) {
-            super.onPostExecute(o);
-            Toast.makeText(UserInfoActivity.this, getString(R.string.unfollow_successfully),
-                    Toast.LENGTH_SHORT).show();
-            bean = o;
-            bean.setFollowing(false);
-            invalidateOptionsMenu();
-        }
-    }
-
-    private class FollowTask extends MyAsyncTask<Void, UserBean, UserBean> {
-
-        WeiboException e;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected UserBean doInBackground(Void... params) {
-            FriendshipsDao dao = new FriendshipsDao(getToken());
-            if (!TextUtils.isEmpty(bean.getId())) {
-                dao.setUid(bean.getId());
-            } else {
-                dao.setScreen_name(bean.getScreen_name());
-            }
-            try {
-                return dao.followIt();
-            } catch (WeiboException e) {
-                AppLogger.e(e.getError());
-                this.e = e;
-                cancel(true);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onCancelled(UserBean userBean) {
-            super.onCancelled(userBean);
-            if (e != null) {
-                Toast.makeText(UserInfoActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                switch (e.getError_code()) {
-                    case ErrorCode.ALREADY_FOLLOWED:
-
-                        break;
+    private void removeFan(){
+        String token = GlobalContext.getInstance().getSpecialToken();
+        String uid = bean.getId();
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<UserBean> call = service.removeFan(token, uid);
+        call.enqueue(new Callback<UserBean>() {
+            @Override
+            public void onResponse(Call<UserBean> call, Response<UserBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(UserInfoActivity.this, getString(R.string.remove_fan_successfully),
+                            Toast.LENGTH_SHORT).show();
+                    bean = response.body();
+                    getInfoFragment().forceReloadData(bean);
                 }
             }
-        }
 
-        @Override
-        protected void onPostExecute(UserBean o) {
-            super.onPostExecute(o);
-            Toast.makeText(UserInfoActivity.this, getString(R.string.follow_successfully),
-                    Toast.LENGTH_SHORT).show();
-            bean = o;
-            bean.setFollowing(true);
-            invalidateOptionsMenu();
-            manageGroup();
-        }
+            @Override
+            public void onFailure(Call<UserBean> call, Throwable t) {
+
+            }
+        });
     }
 
-    private class RemoveFanTask extends MyAsyncTask<Void, UserBean, UserBean> {
-
-        WeiboException e;
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected UserBean doInBackground(Void... params) {
-            FanDao dao = new FanDao(getToken(), bean.getId());
-
-            try {
-                return dao.removeFan();
-            } catch (WeiboException e) {
-                AppLogger.e(e.getError());
-                this.e = e;
-                cancel(true);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onCancelled(UserBean userBean) {
-            super.onCancelled(userBean);
-            if (e != null) {
-                Toast.makeText(UserInfoActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        }
-
-        @Override
-        protected void onPostExecute(UserBean o) {
-            super.onPostExecute(o);
-            Toast.makeText(UserInfoActivity.this, getString(R.string.remove_fan_successfully),
-                    Toast.LENGTH_SHORT).show();
-            bean = o;
-            getInfoFragment().forceReloadData(o);
-        }
-    }
-
-    class UpdateRemarkTask extends MyAsyncTask<Void, UserBean, UserBean> {
-
-        WeiboException e;
-        String remark;
-
-        UpdateRemarkTask(String remark) {
-            this.remark = remark;
-        }
-
-        @Override
-        protected UserBean doInBackground(Void... params) {
-            try {
-                return new RemarkDao(getToken(), bean.getId(), remark).updateRemark();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-            }
-            return null;
-        }
-
-        @Override
-        protected void onCancelled(UserBean userBean) {
-            super.onCancelled(userBean);
-            if (this.e != null) {
-                Toast.makeText(UserInfoActivity.this, this.e.getError(), Toast.LENGTH_SHORT).show();
-            }
-        }
-
-        @Override
-        protected void onPostExecute(UserBean userBean) {
-            super.onPostExecute(userBean);
-            bean = userBean;
-            if (getInfoFragment() != null) {
-                getInfoFragment().forceReloadData(userBean);
-            }
-        }
-    }
 
     private static class RefreshLoader extends AbstractAsyncNetRequestTaskLoader<UserBean> {
 
@@ -546,22 +393,28 @@ public class UserInfoActivity extends AbstractAppActivity {
 
         @Override
         protected UserBean loadData() throws WeiboException {
-            ShowUserDao dao = new ShowUserDao(GlobalContext.getInstance().getSpecialToken());
             boolean haveId = !TextUtils.isEmpty(bean.getId());
             boolean haveName = !TextUtils.isEmpty(bean.getScreen_name());
             boolean haveDomain = !TextUtils.isEmpty(bean.getDomain());
 
-            if (haveId) {
-                dao.setUid(bean.getId());
-            } else if (haveName) {
-                dao.setScreen_name(bean.getScreen_name());
-            } else if (haveDomain) {
-                dao.setDomain(bean.getDomain());
-            } else {
-                return null;
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            String token = GlobalContext.getInstance().getSpecialToken();
+
+            Call<UserBean> call;
+            if(haveDomain){
+                call = service.getUserDomainShow(token,bean.getDomain());
+            }else {
+                call = service.getUserShow(token, bean.getId(),bean.getScreen_name());
             }
 
-            return dao.getUserInfo();
+            try {
+                Response<UserBean> response = call.execute();
+                return response.body();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return null;
         }
     }
 
