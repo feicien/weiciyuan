@@ -7,11 +7,11 @@ import android.os.IBinder;
 import org.qii.weiciyuan.bean.AccountBean;
 import org.qii.weiciyuan.bean.CommentBean;
 import org.qii.weiciyuan.bean.CommentListBean;
+import org.qii.weiciyuan.bean.MessageBean;
 import org.qii.weiciyuan.bean.MessageListBean;
 import org.qii.weiciyuan.bean.UnreadBean;
 import org.qii.weiciyuan.bean.android.CommentTimeLineData;
 import org.qii.weiciyuan.bean.android.MentionTimeLineData;
-import org.qii.weiciyuan.dao.maintimeline.MentionsWeiboTimeLineDao;
 import org.qii.weiciyuan.support.database.AccountDBTask;
 import org.qii.weiciyuan.support.database.CommentToMeTimeLineDBTask;
 import org.qii.weiciyuan.support.database.MentionCommentsTimeLineDBTask;
@@ -168,17 +168,38 @@ public class FetchNewMsgService extends IntentService {
         }
 
         if (unreadMentionStatusCount > 0 && SettingUtility.allowMentionToMe()) {
-            MentionsWeiboTimeLineDao dao = new MentionsWeiboTimeLineDao(token);
             MessageListBean oldData = null;
-            MentionTimeLineData mentionStatusTimeLineData = MentionWeiboTimeLineDBTask
-                    .getRepostLineMsgList(accountBean.getUid());
+            MentionTimeLineData mentionStatusTimeLineData = MentionWeiboTimeLineDBTask.getRepostLineMsgList(accountBean.getUid());
             if (mentionStatusTimeLineData != null) {
                 oldData = mentionStatusTimeLineData.msgList;
             }
+
+            String sinceId = "";
+            String count = SettingUtility.getMsgCount();
+
             if (oldData != null && oldData.getSize() > 0) {
-                dao.setSince_id(oldData.getItem(0).getId());
+                sinceId = oldData.getItem(0).getId();
             }
-            mentionStatusesResult = dao.getGSONMsgListWithoutClearUnread();
+
+            Call<MessageListBean> call5 = service.getStatusesMetionList(token, sinceId,"",count);
+            Response<MessageListBean> response5 = call5.execute();
+            mentionStatusesResult = response5.body();
+
+            if (mentionStatusesResult != null && mentionStatusesResult.getItemList().size() > 0) {
+                List<MessageBean> msgList = mentionStatusesResult.getItemList();
+                Iterator<MessageBean> iterator = msgList.iterator();
+                while (iterator.hasNext()) {
+
+                    MessageBean msg = iterator.next();
+                    if (msg.getUser() == null) {
+                        iterator.remove();
+                    } else {
+                        msg.getListViewSpannableString();
+                        TimeUtility.dealMills(msg);
+                    }
+                }
+            }
+
         }
 
         if (unreadMentionCommentCount > 0 && SettingUtility.allowMentionCommentToMe()) {

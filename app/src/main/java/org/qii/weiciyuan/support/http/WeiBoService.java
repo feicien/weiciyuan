@@ -16,12 +16,14 @@ import org.qii.weiciyuan.bean.GroupUserBean;
 import org.qii.weiciyuan.bean.MapBean;
 import org.qii.weiciyuan.bean.MessageBean;
 import org.qii.weiciyuan.bean.MessageListBean;
+import org.qii.weiciyuan.bean.MessageReCmtCountBean;
 import org.qii.weiciyuan.bean.QueryIdBean;
 import org.qii.weiciyuan.bean.RepostListBean;
 import org.qii.weiciyuan.bean.ResultBean;
 import org.qii.weiciyuan.bean.SearchStatusListBean;
 import org.qii.weiciyuan.bean.ShareListBean;
 import org.qii.weiciyuan.bean.ShortUrlBean;
+import org.qii.weiciyuan.bean.StatusBean;
 import org.qii.weiciyuan.bean.TopicBean;
 import org.qii.weiciyuan.bean.TopicResultListBean;
 import org.qii.weiciyuan.bean.UnreadBean;
@@ -33,6 +35,7 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.Field;
 import retrofit2.http.GET;
+import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 
@@ -44,6 +47,8 @@ import retrofit2.http.Query;
  */
 public interface WeiBoService {
 
+
+    String BASE_URL = "https://api.weibo.com/2/";
 
     @GET("direct_messages/conversation.json")
     Call<DMListBean> getConversationList(@Query("access_token") String token,
@@ -239,9 +244,7 @@ public interface WeiBoService {
                                          @Query("id") String id,
                                          @Query("since_id") String since_id,
                                          @Query("max_id") String max_id,
-                                         @Query("count") String count,
-                                         @Query("page") String page,
-                                         @Query("filter_by_author") String filter_by_author);
+                                         @Query("count") String count);
 
 
     @GET("statuses/repost_timeline.json")
@@ -249,9 +252,7 @@ public interface WeiBoService {
                                        @Query("id") String id,
                                        @Query("since_id") String since_id,
                                        @Query("max_id") String max_id,
-                                       @Query("count") String count,
-                                       @Query("page") String page,
-                                       @Query("filter_by_author") String filter_by_author);
+                                       @Query("count") String count);
 
 
     @GET("statuses/show.json")
@@ -453,4 +454,119 @@ public interface WeiBoService {
 
 
 
+    @GET("statuses/bilateral_timeline.json")
+    Call<MessageListBean> getBilateralTimelineList(@Query("access_token") String token,
+                                                   @Query("since_id") String since_id,
+                                                   @Query("max_id") String max_id,
+                                                   @Query("count") String count);
+
+
+
+    @GET("statuses/friends_timeline.json")
+    Call<MessageListBean> getFriendsTimelineList(@Query("access_token") String token,
+                                          @Query("since_id") String since_id,
+                                          @Query("max_id") String max_id,
+                                          @Query("count") String count);
+
+
+
+
+    @GET("friendships/groups/timeline.json")
+    Call<MessageListBean> getFriendGroupTimelineList(@Query("access_token") String token,
+                                                     @Query("since_id") String since_id,
+                                                     @Query("max_id") String max_id,
+                                                     @Query("count") String count,
+                                                     @Query("list_id") String list_id);
+
+
+
+    @GET("statuses/count.json")
+    Call<List<MessageReCmtCountBean>> getStatusesCount(@Query("access_token") String token,
+                                                        @Query("ids") String ids);
+
+
+
+
+    @GET("statuses/mentions.json")
+    Call<MessageListBean> getStatusesMetionList(@Query("access_token") String token,
+                                                @Query("since_id") String since_id,
+                                                @Query("max_id") String max_id,
+                                                @Query("count") String count);
+
+//        map.put("page", page);
+//        map.put("filter_by_author", filter_by_author);
+//        map.put("filter_by_source", filter_by_source);
+//        map.put("filter_by_type", filter_by_type);
+//        map.put("trim_user", trim_user);
+
+
+
+
+        @GET("comments/by_me.json")
+        Call<CommentListBean> getCommentByMe(@Query("access_token") String token,
+                                             @Query("since_id") String since_id,
+                                             @Query("max_id") String max_id,
+                                             @Query("count") String count);
+
+
+//            map.put("page", page);
+//            map.put("filter_by_source", filter_by_source);
+
+
+    /**
+     * 写微博
+     */
+    @POST("statuses/update.json")
+    Call<StatusBean> updateStatus(@Field("access_token") String token,
+                                  @Field("status") String status,
+                                  @Field("lat") String geoLat,
+                                  @Field("long") String geoLong);
+//    map.put("", str);
+//    if (geoBean != null) {
+//        map.put("", String.valueOf(geoBean.getLat()));
+//        map.put("", String.valueOf(geoBean.getLon()));
+//    }
+//
+//    HttpUtility.getInstance().executeNormalTask(HttpMethod.Post, url, map);
+//    return true;
+
+
+    /**
+     * 写带图片的微博
+     */
+    @Multipart
+    @POST("statuses/upload.json")
+    Call<StatusBean> uploadStatus(@Field("access_token") String token,
+                                       @Field("status") String status,
+                                       @Field("lat") String geoLat,
+                                       @Field("long") String geoLong,
+                                       @Field("pic") String pic);
+
+//        return HttpUtility.getInstance().executeUploadTask(url, map, pic, "pic", listener);
+
+
+
+    /**
+    * http://open.weibo.com/wiki/2/account/avatar/upload
+     */
+    @Multipart
+    @POST("account/avatar/upload.json")
+    Call<StatusBean> uploadAvatar(@Field("access_token") String token,
+                          @Field("image") String image);
+
+
+
+    @POST("account/profile/basic_update.json")
+    Call<UserBean> updateProfile(@Field("access_token") String token,
+                          @Field("screen_name") String screen_name,
+                          @Field("url") String url,
+                          @Field("description") String description);
+
+
+//        if (this.avatar != null) {
+//            UploadAvatarDao uploadAvatarDao = new UploadAvatarDao(access_token, avatar);
+//            uploadAvatarDao.upload();
+//        }
+//
+//        return value;
 }

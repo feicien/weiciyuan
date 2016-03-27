@@ -1,5 +1,14 @@
 package org.qii.weiciyuan.ui.userinfo;
 
+import android.app.ActionBar;
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.v4.content.Loader;
+import android.text.TextUtils;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.AccountBean;
 import org.qii.weiciyuan.bean.FavListBean;
@@ -8,9 +17,9 @@ import org.qii.weiciyuan.bean.MessageReCmtCountBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
 import org.qii.weiciyuan.bean.android.FavouriteTimeLineData;
 import org.qii.weiciyuan.bean.android.TimeLinePosition;
-import org.qii.weiciyuan.dao.maintimeline.TimeLineReCmtCountDao;
 import org.qii.weiciyuan.support.database.FavouriteDBTask;
-import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.lib.MyAsyncTask;
 import org.qii.weiciyuan.support.utils.GlobalContext;
 import org.qii.weiciyuan.support.utils.Utility;
@@ -20,16 +29,12 @@ import org.qii.weiciyuan.ui.loader.MyFavMsgLoader;
 import org.qii.weiciyuan.ui.main.LeftMenuFragment;
 import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 
-import android.app.ActionBar;
-import android.content.Intent;
-import android.os.Bundle;
-import android.support.v4.content.Loader;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -294,56 +299,57 @@ public class MyFavListFragment extends AbstractMessageTimeLineFragment<FavListBe
                 getPullToRefreshListView().setRefreshing();
                 loadNewMsg();
             } else {
-                new RefreshReCmtCountTask().executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+                refreshReCmtCount();
             }
         }
     }
 
-    private class RefreshReCmtCountTask
-            extends MyAsyncTask<Void, List<MessageReCmtCountBean>, List<MessageReCmtCountBean>> {
 
-        List<String> msgIds;
+    private void refreshReCmtCount(){
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            msgIds = new ArrayList<String>();
-            List<MessageBean> msgList = getList().getItemList();
-            for (MessageBean msg : msgList) {
-                if (msg != null) {
-                    msgIds.add(msg.getId());
+        List<String> msgIds = new ArrayList<>();
+        List<MessageBean> msgList = getList().getItemList();
+        for (MessageBean msg : msgList) {
+            if (msg != null) {
+                msgIds.add(msg.getId());
+            }
+        }
+
+        int size = (msgIds.size() >= 100 ? 99 : msgIds.size());
+        msgIds = msgIds.subList(0, size);
+
+        String ids = TextUtils.join(",",msgIds);
+
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<List<MessageReCmtCountBean>> call = service.getStatusesCount(GlobalContext.getInstance().getSpecialToken(),ids);
+
+        call.enqueue(new Callback<List<MessageReCmtCountBean>>() {
+            @Override
+            public void onResponse(Call<List<MessageReCmtCountBean>> call, Response<List<MessageReCmtCountBean>> response) {
+
+
+                List<MessageReCmtCountBean> value = response.body();
+                for (int i = 0; i < value.size(); i++) {
+                    MessageBean msg = getList().getItem(i);
+                    MessageReCmtCountBean count = value.get(i);
+                    if (msg != null && msg.getId().equals(count.getId())) {
+                        msg.setReposts_count(count.getReposts());
+                        msg.setComments_count(count.getComments());
+                    }
                 }
-            }
-        }
+                FavouriteDBTask.asyncReplace(getList(), page, account.getUid());
+                getAdapter().notifyDataSetChanged();
 
-        @Override
-        protected List<MessageReCmtCountBean> doInBackground(Void... params) {
-            try {
-                return new TimeLineReCmtCountDao(GlobalContext.getInstance().getSpecialToken(),
-                        msgIds).get();
-            } catch (WeiboException e) {
-                cancel(true);
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(List<MessageReCmtCountBean> value) {
-            super.onPostExecute(value);
-            if (getActivity() == null || value == null) {
-                return;
             }
 
-            for (int i = 0; i < value.size(); i++) {
-                MessageBean msg = getList().getItem(i);
-                MessageReCmtCountBean count = value.get(i);
-                if (msg != null && msg.getId().equals(count.getId())) {
-                    msg.setReposts_count(count.getReposts());
-                    msg.setComments_count(count.getComments());
-                }
+            @Override
+            public void onFailure(Call<List<MessageReCmtCountBean>> call, Throwable t) {
+
             }
-            FavouriteDBTask.asyncReplace(getList(), page, account.getUid());
-            getAdapter().notifyDataSetChanged();
-        }
+        });
+
     }
+
+
 }

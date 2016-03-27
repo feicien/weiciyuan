@@ -7,14 +7,14 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.qii.weiciyuan.bean.BaiduMapBean;
 import org.qii.weiciyuan.bean.GeoBean;
 import org.qii.weiciyuan.bean.MapBean;
-import org.qii.weiciyuan.dao.location.BaiduGeoCoderDao;
 import org.qii.weiciyuan.dao.location.GoogleGeoCoderDao;
 import org.qii.weiciyuan.support.asyncdrawable.TaskCache;
-import org.qii.weiciyuan.support.error.WeiboException;
 import org.qii.weiciyuan.support.file.FileLocationMethod;
 import org.qii.weiciyuan.support.file.FileManager;
+import org.qii.weiciyuan.support.http.BaiduMapService;
 import org.qii.weiciyuan.support.http.RetrofitUtils;
 import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.imageutility.ImageUtility;
@@ -61,9 +61,16 @@ public class GetWeiboLocationInfoTask extends MyAsyncTask<Void, String, Bitmap> 
 
             try {
                 if (TextUtils.isEmpty(gpsLocationString)) {
-                    publishProgress(new BaiduGeoCoderDao(geoBean.getLat(), geoBean.getLon()).get());
+
+
+                    BaiduMapService service = RetrofitUtils.createBaiduMapService();
+                    Call<BaiduMapBean> call = service.getAddress(geoBean.getLat() + "," + geoBean.getLon());
+                    Response<BaiduMapBean> response = call.execute();
+                    String result = response.body().result.formatted_address;
+
+                    publishProgress(result);
                 }
-            } catch (WeiboException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }

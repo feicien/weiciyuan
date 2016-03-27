@@ -50,7 +50,7 @@ public class RepostByIdMsgLoader extends AbstractAsyncNetRequestTaskLoader<Repos
 
         try {
             WeiBoService service = RetrofitUtils.createWeiBoService();
-            Call<RepostListBean> call = service.getRepostList(token,id,sinceId,maxId,count,"","");
+            Call<RepostListBean> call = service.getRepostList(token,id,sinceId,maxId,count);
             Response<RepostListBean> response = call.execute();
 
             result = response.body();

@@ -23,11 +23,10 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.StatusBean;
 import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.dao.user.EditMyProfileDao;
 import org.qii.weiciyuan.support.asyncdrawable.ProfileAvatarReadWorker;
 import org.qii.weiciyuan.support.database.AccountDBTask;
-import org.qii.weiciyuan.support.error.WeiboException;
 import org.qii.weiciyuan.support.http.RetrofitUtils;
 import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.imageutility.ImageUtility;
@@ -57,7 +56,6 @@ public class EditMyProfileActivity extends AbstractAppActivity
     private MenuItem save;
 
     private ProfileAvatarReadWorker avatarTask;
-    private SaveAsyncTask saveAsyncTask;
     private NewProfileAvatarReaderWorker newProfileAvatarReaderWorker;
 
     private Uri imageFileUri;
@@ -150,10 +148,8 @@ public class EditMyProfileActivity extends AbstractAppActivity
     }
 
     private void save() {
-        if (Utility.isTaskStopped(saveAsyncTask) && !isNicknameEmpty()
-                && !doesNicknameHaveSpace()) {
-            saveAsyncTask = new SaveAsyncTask();
-            saveAsyncTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+        if (!isNicknameEmpty() && !doesNicknameHaveSpace()) {
+            saveAsync();
         }
     }
 
@@ -236,62 +232,61 @@ public class EditMyProfileActivity extends AbstractAppActivity
         layout.avatar.setOnClickListener(avatarOnClickListener);
     }
 
-    private class SaveAsyncTask extends MyAsyncTask<Void, UserBean, UserBean> {
-        String screenName;
-        String url;
-        String description;
-        WeiboException e;
+    private void saveAsync(){
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            screenName = layout.nickname.getText().toString();
-            url = layout.website.getText().toString();
-            description = layout.info.getText().toString();
-            startSaveAnimation();
-        }
+        startSaveAnimation();
 
-        @Override
-        protected UserBean doInBackground(Void... params) {
-            EditMyProfileDao dao = new EditMyProfileDao(
-                    GlobalContext.getInstance().getSpecialToken(), screenName);
-            dao.setUrl(url);
-            dao.setDescription(description);
-            dao.setAvatar(picPath);
+        String  screenName = layout.nickname.getText().toString();
+        String  url = layout.website.getText().toString();
+        String  description = layout.info.getText().toString();
+        final String token = GlobalContext.getInstance().getSpecialToken();
 
-            try {
-                return dao.update();
-            } catch (WeiboException e) {
-                this.e = e;
-                e.printStackTrace();
-                cancel(true);
+        final WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<UserBean> call = service.updateProfile(token, screenName, url, description);
+        call.enqueue(new Callback<UserBean>() {
+            @Override
+            public void onResponse(Call<UserBean> call, Response<UserBean> response) {
+
+
+                if (userBean != null) {
+                    Toast.makeText(EditMyProfileActivity.this, R.string.edit_successfully,
+                            Toast.LENGTH_SHORT).show();
+
+                    if(!TextUtils.isEmpty(picPath)){
+
+                        Call<StatusBean> call1 = service.uploadAvatar(token, picPath);
+                        call1.enqueue(new Callback<StatusBean>() {
+                            @Override
+                            public void onResponse(Call<StatusBean> call, Response<StatusBean> response) {
+                                stopSaveAnimation();
+                                refresh();
+                            }
+
+                            @Override
+                            public void onFailure(Call<StatusBean> call, Throwable t) {
+                                stopSaveAnimation();
+                                refresh();
+                            }
+                        });
+                    }else {
+                        stopSaveAnimation();
+                    }
+
+
+                }else {
+                    stopSaveAnimation();
+                }
+
+
+
             }
-            return null;
-        }
 
-        /**
-         * sina weibo have a bug, after modify your profile, the return UserBean object dont have
-         * large avatar url
-         * so must refresh to get actual data;
-         */
-        @Override
-        protected void onPostExecute(UserBean userBean) {
-            super.onPostExecute(userBean);
-            if (userBean != null) {
-                Toast.makeText(EditMyProfileActivity.this, R.string.edit_successfully,
-                        Toast.LENGTH_SHORT).show();
-                refresh();
+            @Override
+            public void onFailure(Call<UserBean> call, Throwable t) {
+                stopSaveAnimation();
             }
-        }
+        });
 
-        @Override
-        protected void onCancelled(UserBean userBean) {
-            super.onCancelled(userBean);
-            if (this.e != null) {
-                Toast.makeText(EditMyProfileActivity.this, e.getError(), Toast.LENGTH_SHORT).show();
-            }
-            stopSaveAnimation();
-        }
     }
 
     @Override

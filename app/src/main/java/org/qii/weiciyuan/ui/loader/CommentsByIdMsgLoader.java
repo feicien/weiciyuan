@@ -50,7 +50,7 @@ public class CommentsByIdMsgLoader extends AbstractAsyncNetRequestTaskLoader<Com
         try {
 
             WeiBoService service = RetrofitUtils.createWeiBoService();
-            Call<CommentListBean> call = service.getCommentList(token,id,sinceId,maxId,count,"","");
+            Call<CommentListBean> call = service.getCommentList(token,id,sinceId,maxId,count);
             Response<CommentListBean> response = call.execute();
 
             result = response.body();

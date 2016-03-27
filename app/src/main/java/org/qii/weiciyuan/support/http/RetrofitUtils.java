@@ -15,8 +15,12 @@ import retrofit2.converter.gson.GsonConverterFactory;
  */
 public class RetrofitUtils {
 
+    public static BaiduMapService createBaiduMapService() {
+        return initRetrofit(BaiduMapService.BASE_URL).create(BaiduMapService.class);
+    }
+
     public static WeiBoService createWeiBoService() {
-        return initRetrofit("https://api.weibo.com/2/").create(WeiBoService.class);
+        return initRetrofit(WeiBoService.BASE_URL).create(WeiBoService.class);
     }
 
     private static Retrofit initRetrofit(String baseUrl) {
