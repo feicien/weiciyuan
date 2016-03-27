@@ -1,17 +1,5 @@
 package org.qii.weiciyuan.ui.actionmenu;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.basefragment.AbstractTimeLineFragment;
-import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgFragment;
-import org.qii.weiciyuan.ui.send.WriteCommentActivity;
-import org.qii.weiciyuan.ui.send.WriteRepostActivity;
-import org.qii.weiciyuan.ui.task.FavAsyncTask;
-import org.qii.weiciyuan.ui.task.UnFavAsyncTask;
-
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -27,6 +15,22 @@ import android.widget.ListView;
 import android.widget.ShareActionProvider;
 import android.widget.Toast;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.FavBean;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.basefragment.AbstractTimeLineFragment;
+import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgFragment;
+import org.qii.weiciyuan.ui.send.WriteCommentActivity;
+import org.qii.weiciyuan.ui.send.WriteRepostActivity;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 /**
  * User: qii
  * Date: 12-9-9
@@ -39,9 +43,6 @@ public class StatusSingleChoiceModeListener implements ActionMode.Callback {
     private ActionMode mode;
     private MessageBean bean;
     private ShareActionProvider mShareActionProvider;
-
-    private FavAsyncTask favTask = null;
-    private UnFavAsyncTask unFavTask = null;
 
     public void finish() {
         if (mode != null) {
@@ -82,16 +83,6 @@ public class StatusSingleChoiceModeListener implements ActionMode.Callback {
 
         mode.setTitle(bean.getUser().getScreen_name());
 
-        //fuck sina weibo
-//        MenuItem favItem = menu.findItem(R.id.menu_fav);
-//        MenuItem unFavItem = menu.findItem(R.id.menu_unfav);
-//        if (bean.isFavorited()) {
-//            favItem.setVisible(false);
-//            unFavItem.setVisible(true);
-//        } else {
-//            favItem.setVisible(true);
-//            unFavItem.setVisible(false);
-//        }
 
         MenuItem item = menu.findItem(R.id.menu_share);
         mShareActionProvider = (ShareActionProvider) item.getActionProvider();
@@ -139,27 +130,19 @@ public class StatusSingleChoiceModeListener implements ActionMode.Callback {
 
                 break;
             case R.id.menu_fav:
-                if (Utility.isTaskStopped(favTask) && Utility.isTaskStopped(unFavTask)) {
-                    favTask = new FavAsyncTask(GlobalContext.getInstance().getSpecialToken(),
-                            bean.getId());
-                    favTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
+                fav(GlobalContext.getInstance().getSpecialToken(), bean.getId());
                 listView.clearChoices();
                 mode.finish();
                 break;
             case R.id.menu_unfav:
-                if (Utility.isTaskStopped(favTask) && Utility.isTaskStopped(unFavTask)) {
-                    unFavTask = new UnFavAsyncTask(GlobalContext.getInstance().getSpecialToken(),
-                            bean.getId());
-                    unFavTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
+                unFav(GlobalContext.getInstance().getSpecialToken(), bean.getId());
                 listView.clearChoices();
                 mode.finish();
                 break;
             case R.id.menu_remove:
 
                 int position = listView.getCheckedItemPosition() - listView.getHeaderViewsCount();
-                RemoveDialog dialog = new RemoveDialog(position);
+                RemoveDialog dialog = RemoveDialog.newInstance(position);
                 dialog.setTargetFragment(fragment, 0);
                 dialog.show(fragment.getFragmentManager(), "");
 
@@ -188,6 +171,47 @@ public class StatusSingleChoiceModeListener implements ActionMode.Callback {
                 break;
         }
         return true;
+    }
+
+    private void unFav(String token, String id) {
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<FavBean> call = service.unFavIt(token, id);
+        call.enqueue(new Callback<FavBean>() {
+            @Override
+            public void onResponse(Call<FavBean> call, Response<FavBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(GlobalContext.getInstance(),
+                            GlobalContext.getInstance().getString(R.string.un_fav_successfully),
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<FavBean> call, Throwable t) {
+
+            }
+        });
+
+    }
+
+    private void fav(String token, String id) {
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<FavBean> call = service.favIt(token, id);
+        call.enqueue(new Callback<FavBean>() {
+            @Override
+            public void onResponse(Call<FavBean> call, Response<FavBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(GlobalContext.getInstance(),
+                            GlobalContext.getInstance().getString(R.string.fav_successfully),
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<FavBean> call, Throwable t) {
+
+            }
+        });
     }
 
     @Override

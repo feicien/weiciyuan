@@ -1,11 +1,5 @@
 package org.qii.weiciyuan.ui.adapter;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.support.utils.WebBrowserSelector;
-import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ClipData;
@@ -16,8 +10,15 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Browser;
+import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.support.utils.WebBrowserSelector;
+import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
 
 /**
  * User: qii
@@ -25,36 +26,24 @@ import android.widget.Toast;
  */
 public class LongClickLinkDialog extends DialogFragment {
 
-    private Uri uri;
+    public static LongClickLinkDialog newInstance(Uri uri) {
 
-    public LongClickLinkDialog() {
-
+        Bundle args = new Bundle();
+        args.putParcelable("uri", uri);
+        LongClickLinkDialog fragment = new LongClickLinkDialog();
+        fragment.setArguments(args);
+        return fragment;
     }
 
-    public LongClickLinkDialog(Uri uri) {
-        this.uri = uri;
-    }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putParcelable("uri", uri);
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (savedInstanceState != null) {
-            this.uri = savedInstanceState.getParcelable("uri");
-        }
-    }
-
+    @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+        final Uri uri = getArguments().getParcelable("uri");
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         CharSequence[] strangerItems = {getString(R.string.open), getString(R.string.copy)};
 
-        builder.setTitle(getStringContent())
+        builder.setTitle(getStringContent(uri))
                 .setItems(strangerItems, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -87,10 +76,10 @@ public class LongClickLinkDialog extends DialogFragment {
                                 ClipboardManager cm = (ClipboardManager) getActivity()
                                         .getSystemService(Context.CLIPBOARD_SERVICE);
                                 cm.setPrimaryClip(
-                                        ClipData.newPlainText("sinaweibo", getStringContent()));
+                                        ClipData.newPlainText("sinaweibo", getStringContent(uri)));
                                 Toast.makeText(GlobalContext.getInstance(), String.format(
                                         GlobalContext.getInstance().getString(R.string.have_copied),
-                                        getStringContent()), Toast.LENGTH_SHORT).show();
+                                        getStringContent(uri)), Toast.LENGTH_SHORT).show();
                                 break;
                         }
                     }
@@ -99,7 +88,7 @@ public class LongClickLinkDialog extends DialogFragment {
         return builder.create();
     }
 
-    private String getStringContent() {
+    private String getStringContent(Uri uri) {
         String d = uri.toString();
         String newValue = "";
         if (d.startsWith("org.qii.weiciyuan")) {

@@ -18,10 +18,6 @@ import android.widget.EditText;
 public class AddGroupDialog extends DialogFragment {
     private EditText name;
 
-    public AddGroupDialog() {
-
-    }
-
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);

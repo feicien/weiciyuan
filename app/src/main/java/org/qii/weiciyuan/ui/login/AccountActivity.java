@@ -8,7 +8,6 @@ import org.qii.weiciyuan.support.settinghelper.SettingUtility;
 import org.qii.weiciyuan.support.utils.GlobalContext;
 import org.qii.weiciyuan.support.utils.ThemeUtility;
 import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.blackmagic.BlackMagicActivity;
 import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
 import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 
@@ -146,11 +145,6 @@ public class AccountActivity extends AbstractAppActivity
                 .isSinaWeiboSafe(this)) {
             activityList.add(SSOActivity.class);
             itemValueList.add(getString(R.string.official_app_login));
-        }
-
-        if (SettingUtility.isBlackMagicEnabled()) {
-            activityList.add(BlackMagicActivity.class);
-            itemValueList.add(getString(R.string.hack_login));
         }
 
         new AlertDialog.Builder(this)

@@ -1,24 +1,5 @@
 package org.qii.weiciyuan.ui.adapter;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.CommentBean;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.support.asyncdrawable.TimeLineBitmapDownloader;
-import org.qii.weiciyuan.support.lib.LongClickableLinkMovementMethod;
-import org.qii.weiciyuan.support.lib.MyURLSpan;
-import org.qii.weiciyuan.support.lib.TimeLineAvatarImageView;
-import org.qii.weiciyuan.support.lib.TimeTextView;
-import org.qii.weiciyuan.support.settinghelper.SettingUtility;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.ThemeUtility;
-import org.qii.weiciyuan.support.utils.TimeLineUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.support.utils.ViewUtility;
-import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgFragment;
-import org.qii.weiciyuan.ui.send.WriteReplyToCommentActivity;
-import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
@@ -40,6 +21,25 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.CommentBean;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.support.asyncdrawable.TimeLineBitmapDownloader;
+import org.qii.weiciyuan.support.lib.LongClickableLinkMovementMethod;
+import org.qii.weiciyuan.support.lib.MyURLSpan;
+import org.qii.weiciyuan.support.lib.TimeLineAvatarImageView;
+import org.qii.weiciyuan.support.lib.TimeTextView;
+import org.qii.weiciyuan.support.settinghelper.SettingUtility;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.ThemeUtility;
+import org.qii.weiciyuan.support.utils.TimeLineUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.support.utils.ViewUtility;
+import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgFragment;
+import org.qii.weiciyuan.ui.send.WriteReplyToCommentActivity;
+import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
 
 import java.util.List;
 import java.util.Map;
@@ -455,7 +455,7 @@ public class BrowserWeiboMsgCommentAndRepostAdapter extends BaseAdapter {
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                UserDialog dialog = new UserDialog(user);
+                UserDialog dialog = UserDialog.newInstance(user);
                 dialog.show(fragment.getFragmentManager(), "");
                 return true;
             }

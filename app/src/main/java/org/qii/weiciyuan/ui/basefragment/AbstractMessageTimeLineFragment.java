@@ -1,22 +1,24 @@
 package org.qii.weiciyuan.ui.basefragment;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.ListBean;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.dao.destroy.DestroyStatusDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.actionmenu.StatusSingleChoiceModeListener;
-import org.qii.weiciyuan.ui.adapter.StatusListAdapter;
-import org.qii.weiciyuan.ui.interfaces.IRemoveItem;
-
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.ListBean;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.ui.actionmenu.StatusSingleChoiceModeListener;
+import org.qii.weiciyuan.ui.adapter.StatusListAdapter;
+import org.qii.weiciyuan.ui.interfaces.IRemoveItem;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -25,7 +27,6 @@ import android.widget.Toast;
 public abstract class AbstractMessageTimeLineFragment<T extends ListBean<MessageBean, ?>>
         extends AbstractTimeLineFragment<T> implements IRemoveItem {
 
-    private RemoveTask removeTask;
 
     protected void showNewMsgToastMessage(ListBean<MessageBean, ?> newValue) {
         if (newValue != null && getActivity() != null) {
@@ -107,11 +108,7 @@ public abstract class AbstractMessageTimeLineFragment<T extends ListBean<Message
     @Override
     public void removeItem(int position) {
         clearActionMode();
-        if (removeTask == null || removeTask.getStatus() == MyAsyncTask.Status.FINISHED) {
-            removeTask = new RemoveTask(GlobalContext.getInstance().getSpecialToken(),
-                    getList().getItemList().get(position).getId(), position);
-            removeTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-        }
+        removeStatus(GlobalContext.getInstance().getSpecialToken(), getList().getItemList().get(position).getId(), position);
     }
 
     @Override
@@ -119,45 +116,25 @@ public abstract class AbstractMessageTimeLineFragment<T extends ListBean<Message
         clearActionMode();
     }
 
-    class RemoveTask extends MyAsyncTask<Void, Void, Boolean> {
 
-        String token;
-        String id;
-        int positon;
-        WeiboException e;
 
-        public RemoveTask(String token, String id, int positon) {
-            this.token = token;
-            this.id = id;
-            this.positon = positon;
-        }
+    private void removeStatus(String token, String id, final int positon){
 
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            DestroyStatusDao dao = new DestroyStatusDao(token, id);
-            try {
-                return dao.destroy();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-                return false;
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<MessageBean> call = service.destroyStatus(token, id);
+        call.enqueue(new Callback<MessageBean>() {
+            @Override
+            public void onResponse(Call<MessageBean> call, Response<MessageBean> response) {
+                if(response.isSuccessful() && response.body() != null){
+                    ((StatusListAdapter) timeLineAdapter).removeItem(positon);
+                }
             }
-        }
 
-        @Override
-        protected void onCancelled(Boolean aBoolean) {
-            super.onCancelled(aBoolean);
-            if (Utility.isAllNotNull(this.e, getActivity())) {
-                Toast.makeText(getActivity(), e.getError(), Toast.LENGTH_SHORT).show();
-            }
-        }
+            @Override
+            public void onFailure(Call<MessageBean> call, Throwable t) {
 
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            if (aBoolean) {
-                ((StatusListAdapter) timeLineAdapter).removeItem(positon);
             }
-        }
+        });
+
     }
 }

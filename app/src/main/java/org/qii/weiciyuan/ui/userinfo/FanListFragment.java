@@ -1,5 +1,10 @@
 package org.qii.weiciyuan.ui.userinfo;
 
+import android.os.Bundle;
+import android.support.v4.content.Loader;
+import android.view.View;
+import android.widget.AdapterView;
+
 import org.qii.weiciyuan.bean.UserBean;
 import org.qii.weiciyuan.bean.UserListBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
@@ -8,11 +13,6 @@ import org.qii.weiciyuan.ui.actionmenu.MyFanSingleChoiceModeListener;
 import org.qii.weiciyuan.ui.actionmenu.NormalFriendShipSingleChoiceModeListener;
 import org.qii.weiciyuan.ui.basefragment.AbstractFriendsFanListFragment;
 import org.qii.weiciyuan.ui.loader.FanUserLoader;
-
-import android.os.Bundle;
-import android.support.v4.content.Loader;
-import android.view.View;
-import android.widget.AdapterView;
 
 /**
  * User: Jiang Qi
@@ -28,9 +28,6 @@ public class FanListFragment extends AbstractFriendsFanListFragment {
         return fragment;
     }
 
-    public FanListFragment() {
-        super();
-    }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {

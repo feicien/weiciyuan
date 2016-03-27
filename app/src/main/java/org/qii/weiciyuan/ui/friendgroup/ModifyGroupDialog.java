@@ -1,7 +1,5 @@
 package org.qii.weiciyuan.ui.friendgroup;
 
-import org.qii.weiciyuan.R;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -10,6 +8,8 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.WindowManager;
 import android.widget.EditText;
+
+import org.qii.weiciyuan.R;
 
 /**
  * User: qii
@@ -21,29 +21,27 @@ public class ModifyGroupDialog extends DialogFragment {
     private String idstr;
     private String oriName;
 
-    public ModifyGroupDialog() {
 
-    }
+    public static ModifyGroupDialog newInstance(String oriName, String idstr) {
 
-    public ModifyGroupDialog(String oriName, String idstr) {
-        this.idstr = idstr;
-        this.oriName = oriName;
+        Bundle args = new Bundle();
+        args.putString("oriName", oriName);
+        args.putString("idstr", idstr);
+        ModifyGroupDialog fragment = new ModifyGroupDialog();
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString("idstr", idstr);
-        outState.putString("oriName", oriName);
         outState.putString("name", name.getText().toString());
     }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            idstr = savedInstanceState.getString("idstr");
-            oriName = savedInstanceState.getString("oriName");
-        }
+        idstr = getArguments().getString("idstr");
+        oriName = getArguments().getString("oriName");
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         name = new EditText(getActivity());
         name.setHint(oriName);

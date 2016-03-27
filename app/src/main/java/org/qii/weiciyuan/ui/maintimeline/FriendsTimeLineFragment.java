@@ -1,8 +1,31 @@
 package org.qii.weiciyuan.ui.maintimeline;
 
+import android.app.ActionBar;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.support.v4.content.Loader;
+import android.text.TextUtils;
+import android.util.Pair;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroupOverlay;
+import android.view.ViewTreeObserver;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.Toast;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.AccountBean;
 import org.qii.weiciyuan.bean.GroupBean;
+import org.qii.weiciyuan.bean.GroupListBean;
 import org.qii.weiciyuan.bean.MessageBean;
 import org.qii.weiciyuan.bean.MessageListBean;
 import org.qii.weiciyuan.bean.MessageReCmtCountBean;
@@ -10,11 +33,12 @@ import org.qii.weiciyuan.bean.UserBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
 import org.qii.weiciyuan.bean.android.MessageTimeLineData;
 import org.qii.weiciyuan.bean.android.TimeLinePosition;
-import org.qii.weiciyuan.dao.maintimeline.TimeLineReCmtCountDao;
 import org.qii.weiciyuan.othercomponent.WifiAutoDownloadPictureRunnable;
 import org.qii.weiciyuan.support.database.FriendsTimeLineDBTask;
+import org.qii.weiciyuan.support.database.GroupDBTask;
 import org.qii.weiciyuan.support.debug.AppLogger;
-import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.lib.HeaderListView;
 import org.qii.weiciyuan.support.lib.LogOnExceptionScheduledExecutor;
 import org.qii.weiciyuan.support.lib.MyAsyncTask;
@@ -34,27 +58,6 @@ import org.qii.weiciyuan.ui.main.LeftMenuFragment;
 import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
 
-import android.app.ActionBar;
-import android.content.Intent;
-import android.graphics.Bitmap;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.support.v4.content.Loader;
-import android.util.Pair;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroupOverlay;
-import android.view.ViewTreeObserver;
-import android.view.animation.DecelerateInterpolator;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
-import android.widget.ImageView;
-import android.widget.ListView;
-import android.widget.Toast;
-
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,6 +65,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -300,10 +307,7 @@ public class FriendsTimeLineFragment extends AbstractMessageTimeLineFragment<Mes
                 if (Utility.isTaskStopped(dbTask) && getList().getSize() == 0) {
                     dbTask = new DBCacheTask(this, accountBean.getUid());
                     dbTask.executeOnIO();
-                    GroupInfoTask groupInfoTask = new GroupInfoTask(
-                            GlobalContext.getInstance().getSpecialToken(),
-                            GlobalContext.getInstance().getCurrentAccountId());
-                    groupInfoTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+                    groupInfoTask(GlobalContext.getInstance().getSpecialToken(), GlobalContext.getInstance().getCurrentAccountId());
                 } else {
                     getAdapter().notifyDataSetChanged();
                     refreshLayout(getList());
@@ -327,10 +331,7 @@ public class FriendsTimeLineFragment extends AbstractMessageTimeLineFragment<Mes
                 if (Utility.isTaskStopped(dbTask) && getList().getSize() == 0) {
                     dbTask = new DBCacheTask(this, accountBean.getUid());
                     dbTask.executeOnIO();
-                    GroupInfoTask groupInfoTask = new GroupInfoTask(
-                            GlobalContext.getInstance().getSpecialToken(),
-                            GlobalContext.getInstance().getCurrentAccountId());
-                    groupInfoTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+                    groupInfoTask(GlobalContext.getInstance().getSpecialToken(), GlobalContext.getInstance().getCurrentAccountId());
                 } else {
                     getAdapter().notifyDataSetChanged();
                     refreshLayout(getList());
@@ -348,6 +349,28 @@ public class FriendsTimeLineFragment extends AbstractMessageTimeLineFragment<Mes
         }
 
         super.onActivityCreated(savedInstanceState);
+    }
+
+    private void groupInfoTask(String token, final String accountId) {
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<GroupListBean> call = service.getGroup(token);
+        call.enqueue(new Callback<GroupListBean>() {
+            @Override
+            public void onResponse(Call<GroupListBean> call, Response<GroupListBean> response) {
+                GroupListBean groupListBean = response.body();
+
+                GroupDBTask.update(groupListBean, accountId);
+                if (accountId.equalsIgnoreCase(GlobalContext.getInstance().getCurrentAccountId())) {
+                    GlobalContext.getInstance().setGroup(groupListBean);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<GroupListBean> call, Throwable t) {
+
+            }
+        });
     }
 
     @Override
@@ -508,9 +531,7 @@ public class FriendsTimeLineFragment extends AbstractMessageTimeLineFragment<Mes
             getPullToRefreshListView().setRefreshing();
             loadNewMsg();
         } else {
-            new RefreshReCmtCountTask(FriendsTimeLineFragment.this, getList())
-                    .executeOnExecutor(
-                            MyAsyncTask.THREAD_POOL_EXECUTOR);
+            refreshReCmtCount();
         }
     }
 
@@ -524,9 +545,7 @@ public class FriendsTimeLineFragment extends AbstractMessageTimeLineFragment<Mes
     @Override
     public void loadNewMsg() {
         super.loadNewMsg();
-        new RefreshReCmtCountTask(FriendsTimeLineFragment.this, getList())
-                .executeOnExecutor(
-                        MyAsyncTask.THREAD_POOL_EXECUTOR);
+        refreshReCmtCount();
     }
 
     private static class DBCacheTask
@@ -948,8 +967,7 @@ public class FriendsTimeLineFragment extends AbstractMessageTimeLineFragment<Mes
             getAdapter().notifyDataSetChanged();
             setListViewPositionFromPositionsCache();
             saveGroupIdToDB();
-            new RefreshReCmtCountTask(this, getList())
-                    .executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+            refreshReCmtCount();
         }
     }
 
@@ -1019,49 +1037,41 @@ public class FriendsTimeLineFragment extends AbstractMessageTimeLineFragment<Mes
     /**
      * refresh timline messages' repost and comment count
      */
-    private static class RefreshReCmtCountTask
-            extends MyAsyncTask<Void, List<MessageReCmtCountBean>, List<MessageReCmtCountBean>> {
+    private void refreshReCmtCount(){
 
-        private List<String> msgIds;
-        private WeakReference<FriendsTimeLineFragment> fragmentWeakReference;
-
-        private RefreshReCmtCountTask(FriendsTimeLineFragment friendsTimeLineFragment,
-                MessageListBean data) {
-            fragmentWeakReference = new WeakReference<FriendsTimeLineFragment>(
-                    friendsTimeLineFragment);
-            msgIds = new ArrayList<String>();
-            List<MessageBean> msgList = data.getItemList();
-            for (MessageBean msg : msgList) {
-                if (msg != null) {
-                    msgIds.add(msg.getId());
-                }
+        List<String> msgIds = new ArrayList<>();
+        List<MessageBean> msgList = getList().getItemList();
+        for (MessageBean msg : msgList) {
+            if (msg != null) {
+                msgIds.add(msg.getId());
             }
         }
 
-        @Override
-        protected List<MessageReCmtCountBean> doInBackground(Void... params) {
-            if (msgIds.size() == 0) {
-                return null;
+        int size = (msgIds.size() >= 100 ? 99 : msgIds.size());
+        msgIds = msgIds.subList(0, size);
+
+        String ids = TextUtils.join(",",msgIds);
+
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<List<MessageReCmtCountBean>> call = service.getStatusesCount(GlobalContext.getInstance().getSpecialToken(),ids);
+
+        call.enqueue(new Callback<List<MessageReCmtCountBean>>() {
+            @Override
+            public void onResponse(Call<List<MessageReCmtCountBean>> call, Response<List<MessageReCmtCountBean>> response) {
+
+
+                List<MessageReCmtCountBean> value = response.body();
+                updateTimeLineMessageCommentAndRepostData(value);
+
             }
 
-            try {
-                return new TimeLineReCmtCountDao(GlobalContext.getInstance().getSpecialToken(),
-                        msgIds).get();
-            } catch (WeiboException e) {
-                cancel(true);
-            }
-            return null;
-        }
+            @Override
+            public void onFailure(Call<List<MessageReCmtCountBean>> call, Throwable t) {
 
-        @Override
-        protected void onPostExecute(List<MessageReCmtCountBean> value) {
-            super.onPostExecute(value);
-            FriendsTimeLineFragment fragment = fragmentWeakReference.get();
-            if (fragment == null || value == null || value.size() == 0) {
-                return;
             }
-            fragment.updateTimeLineMessageCommentAndRepostData(value);
-        }
+        });
+
     }
 
     private void updateTimeLineMessageCommentAndRepostData(List<MessageReCmtCountBean> value) {

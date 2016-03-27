@@ -1,5 +1,17 @@
 package org.qii.weiciyuan.ui.maintimeline;
 
+import android.app.ActionBar;
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
+import android.text.TextUtils;
+import android.view.View;
+import android.view.ViewTreeObserver;
+import android.widget.AdapterView;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.AccountBean;
 import org.qii.weiciyuan.bean.MessageBean;
@@ -10,12 +22,12 @@ import org.qii.weiciyuan.bean.UserBean;
 import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
 import org.qii.weiciyuan.bean.android.MentionTimeLineData;
 import org.qii.weiciyuan.bean.android.TimeLinePosition;
-import org.qii.weiciyuan.dao.maintimeline.TimeLineReCmtCountDao;
 import org.qii.weiciyuan.dao.unread.ClearUnreadDao;
 import org.qii.weiciyuan.othercomponent.AppNotificationCenter;
 import org.qii.weiciyuan.support.database.MentionWeiboTimeLineDBTask;
 import org.qii.weiciyuan.support.debug.AppLogger;
-import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.lib.MyAsyncTask;
 import org.qii.weiciyuan.support.lib.TopTipBar;
 import org.qii.weiciyuan.support.utils.GlobalContext;
@@ -28,19 +40,12 @@ import org.qii.weiciyuan.ui.loader.MentionsWeiboTimeDBLoader;
 import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
 import org.qii.weiciyuan.ui.main.MentionsTimeLine;
 
-import android.app.ActionBar;
-import android.content.Intent;
-import android.os.Bundle;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.Loader;
-import android.view.View;
-import android.view.ViewTreeObserver;
-import android.widget.AdapterView;
-import android.widget.TextView;
-import android.widget.Toast;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -82,9 +87,6 @@ public class MentionsWeiboTimeLineFragment
         return fragment;
     }
 
-    public MentionsWeiboTimeLineFragment() {
-
-    }
 
     @Override
     public void onResume() {
@@ -400,7 +402,7 @@ public class MentionsWeiboTimeLineFragment
                 pullToRefreshListView.setRefreshing();
                 loadNewMsg();
             } else {
-                new RefreshReCmtCountTask().executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+                refreshReCmtCount();
             }
 
             getLoaderManager().destroyLoader(loader.getId());
@@ -469,52 +471,51 @@ public class MentionsWeiboTimeLineFragment
         }
     }
 
-    private class RefreshReCmtCountTask
-            extends MyAsyncTask<Void, List<MessageReCmtCountBean>, List<MessageReCmtCountBean>> {
 
-        List<String> msgIds;
+    private void refreshReCmtCount(){
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            msgIds = new ArrayList<String>();
-            List<MessageBean> msgList = getList().getItemList();
-            for (MessageBean msg : msgList) {
-                if (msg != null) {
-                    msgIds.add(msg.getId());
+        List<String> msgIds = new ArrayList<>();
+        List<MessageBean> msgList = getList().getItemList();
+        for (MessageBean msg : msgList) {
+            if (msg != null) {
+                msgIds.add(msg.getId());
+            }
+        }
+
+        int size = (msgIds.size() >= 100 ? 99 : msgIds.size());
+        msgIds = msgIds.subList(0, size);
+
+        String ids = TextUtils.join(",",msgIds);
+
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<List<MessageReCmtCountBean>> call = service.getStatusesCount(GlobalContext.getInstance().getSpecialToken(),ids);
+
+        call.enqueue(new Callback<List<MessageReCmtCountBean>>() {
+            @Override
+            public void onResponse(Call<List<MessageReCmtCountBean>> call, Response<List<MessageReCmtCountBean>> response) {
+
+
+                List<MessageReCmtCountBean> value = response.body();
+                for (int i = 0; i < value.size(); i++) {
+                    MessageBean msg = getList().getItem(i);
+                    MessageReCmtCountBean count = value.get(i);
+                    if (msg != null && msg.getId().equals(count.getId())) {
+                        msg.setReposts_count(count.getReposts());
+                        msg.setComments_count(count.getComments());
+                    }
                 }
-            }
-        }
+                MentionWeiboTimeLineDBTask.asyncReplace(getList(), accountBean.getUid());
+                getAdapter().notifyDataSetChanged();
 
-        @Override
-        protected List<MessageReCmtCountBean> doInBackground(Void... params) {
-            try {
-                return new TimeLineReCmtCountDao(GlobalContext.getInstance().getSpecialToken(),
-                        msgIds).get();
-            } catch (WeiboException e) {
-                cancel(true);
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(List<MessageReCmtCountBean> value) {
-            super.onPostExecute(value);
-            if (getActivity() == null || value == null) {
-                return;
             }
 
-            for (int i = 0; i < value.size(); i++) {
-                MessageBean msg = getList().getItem(i);
-                MessageReCmtCountBean count = value.get(i);
-                if (msg != null && msg.getId().equals(count.getId())) {
-                    msg.setReposts_count(count.getReposts());
-                    msg.setComments_count(count.getComments());
-                }
+            @Override
+            public void onFailure(Call<List<MessageReCmtCountBean>> call, Throwable t) {
+
             }
-            MentionWeiboTimeLineDBTask.asyncReplace(getList(), accountBean.getUid());
-            getAdapter().notifyDataSetChanged();
-        }
+        });
+
     }
 
     private void clearUnreadMentions(final UnreadBean data) {
@@ -522,14 +523,9 @@ public class MentionsWeiboTimeLineFragment
 
             @Override
             protected Void doInBackground(Void... params) {
-                try {
-                    new ClearUnreadDao(
-                            GlobalContext.getInstance().getAccountBean().getAccess_token())
-                            .clearMentionStatusUnread(data,
-                                    GlobalContext.getInstance().getAccountBean().getUid());
-                } catch (WeiboException ignored) {
-
-                }
+                    String token = GlobalContext.getInstance().getAccountBean().getAccess_token();
+                    String uid = GlobalContext.getInstance().getAccountBean().getUid();
+                    ClearUnreadDao.clearMentionStatusUnread(token, data, uid);
                 return null;
             }
         }.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);

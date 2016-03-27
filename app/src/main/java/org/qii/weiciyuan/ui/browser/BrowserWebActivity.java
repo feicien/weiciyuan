@@ -1,14 +1,5 @@
 package org.qii.weiciyuan.ui.browser;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.dao.shorturl.ShareShortUrlCountDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.CheatSheet;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-
 import android.app.ActionBar;
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,6 +7,19 @@ import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.ShortUrlBean;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.CheatSheet;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -62,9 +66,11 @@ public class BrowserWebActivity extends AbstractAppActivity {
 
         getActionBar().setTitle(url);
         if (savedInstanceState == null) {
-            getFragmentManager().beginTransaction()
-                    .replace(android.R.id.content, new BrowserWebFragment(url)).commit();
-            new ShareCountTask().executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+            getFragmentManager()
+                    .beginTransaction()
+                    .replace(android.R.id.content, BrowserWebFragment.newInstance(url))
+                    .commit();
+            shareCount();
         } else {
             shareCountInt = savedInstanceState.getInt("shareCountInt");
             shareCountBtn.setText(String.valueOf(shareCountInt));
@@ -83,32 +89,28 @@ public class BrowserWebActivity extends AbstractAppActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private class ShareCountTask extends MyAsyncTask<Void, Integer, Integer> {
 
-        @Override
-        protected Integer doInBackground(Void... params) {
-            int result = 0;
-            try {
-                result = new ShareShortUrlCountDao(GlobalContext.getInstance().getSpecialToken(),
-                        url).getCount();
-            } catch (WeiboException e) {
+    private void shareCount(){
+        String token = GlobalContext.getInstance().getSpecialToken();
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<ShortUrlBean> call = service.shortUrlShareCount(token, url);
+        call.enqueue(new Callback<ShortUrlBean>() {
+            @Override
+            public void onResponse(Call<ShortUrlBean> call, Response<ShortUrlBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    if (shareCountBtn == null) {
+                        return;
+                    }
+                    shareCountInt = response.body().share_counts;
+                    shareCountBtn.setText(String.valueOf(shareCountInt));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ShortUrlBean> call, Throwable t) {
 
             }
-            return result;
-        }
-
-        @Override
-        protected void onPostExecute(Integer result) {
-            super.onPostExecute(result);
-            if (result == null) {
-                return;
-            }
-            if (shareCountBtn == null) {
-                return;
-            }
-            shareCountInt = result;
-            shareCountBtn.setText(String.valueOf(shareCountInt));
-        }
+        });
     }
 }
 

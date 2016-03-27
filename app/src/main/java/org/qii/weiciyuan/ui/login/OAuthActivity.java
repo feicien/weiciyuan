@@ -1,17 +1,5 @@
 package org.qii.weiciyuan.ui.login;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.AccountBean;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.dao.URLHelper;
-import org.qii.weiciyuan.dao.login.OAuthDao;
-import org.qii.weiciyuan.support.database.AccountDBTask;
-import org.qii.weiciyuan.support.debug.AppLogger;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -35,9 +23,26 @@ import android.webkit.WebViewClient;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.AccountBean;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.dao.URLHelper;
+import org.qii.weiciyuan.support.database.AccountDBTask;
+import org.qii.weiciyuan.support.debug.AppLogger;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -223,7 +228,15 @@ public class OAuthActivity extends AbstractAppActivity {
             long expiresInSeconds = Long.valueOf(params[1]);
 
             try {
-                UserBean user = new OAuthDao(token).getOAuthUserInfo();
+                WeiBoService service = RetrofitUtils.createWeiBoService();
+                Call<String> call = service.getUserUID(token);
+                Response<String> response = call.execute();
+                String uid = response.body();
+
+                Call<UserBean> call2 = service.getOAuthUserInfo(token,uid);
+                Response<UserBean> response2 = call2.execute();
+                UserBean user = response2.body();
+
                 AccountBean account = new AccountBean();
                 account.setAccess_token(token);
                 account.setExpires_time(System.currentTimeMillis() + expiresInSeconds * 1000);
@@ -231,12 +244,10 @@ public class OAuthActivity extends AbstractAppActivity {
                 AppLogger
                         .e("token expires in " + Utility.calcTokenExpiresInDays(account) + " days");
                 return AccountDBTask.addOrUpdateAccount(account, false);
-            } catch (WeiboException e) {
-                AppLogger.e(e.getError());
-                this.e = e;
-                cancel(true);
-                return null;
+            } catch (IOException e1) {
+                e1.printStackTrace();
             }
+            return null;
         }
 
         @Override

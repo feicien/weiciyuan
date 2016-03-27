@@ -1,19 +1,5 @@
 package org.qii.weiciyuan.othercomponent.sendweiboservice;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.AccountBean;
-import org.qii.weiciyuan.bean.GeoBean;
-import org.qii.weiciyuan.dao.send.StatusNewMsgDao;
-import org.qii.weiciyuan.support.database.DraftDBManager;
-import org.qii.weiciyuan.support.database.draftbean.StatusDraftBean;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.file.FileUploaderHttpHelper;
-import org.qii.weiciyuan.support.imageutility.ImageUtility;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.NotificationUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
-
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -26,11 +12,29 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.text.TextUtils;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.AccountBean;
+import org.qii.weiciyuan.bean.GeoBean;
+import org.qii.weiciyuan.bean.StatusBean;
+import org.qii.weiciyuan.support.database.DraftDBManager;
+import org.qii.weiciyuan.support.database.draftbean.StatusDraftBean;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.imageutility.ImageUtility;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.NotificationUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.send.WriteWeiboActivity;
+
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+
+import retrofit2.Call;
 
 /**
  * User: qii
@@ -172,30 +176,20 @@ public class SendWeiboService extends Service {
             tasksNotifications.put(WeiboSendTask.this, notificationId);
         }
 
-        private boolean sendPic(String uploadPicPath) throws WeiboException {
-            return new StatusNewMsgDao(token).setPic(uploadPicPath).setGeoBean(geoBean).sendNewMsg(
-                    content, new FileUploaderHttpHelper.ProgressListener() {
+        private boolean sendPic(String uploadPicPath) throws IOException {
 
-                        @Override
-                        public void transferred(long data) {
-
-                            publishProgress(data);
-                        }
-
-                        @Override
-                        public void waitServerResponse() {
-                            publishProgress(-1L);
-                        }
-
-                        @Override
-                        public void completed() {
-                            publishProgress(size);
-                        }
-                    });
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<StatusBean> call = service.uploadStatus(token, content, String.valueOf(geoBean.getLat()), String.valueOf(geoBean.getLon()),uploadPicPath);
+            call.execute();
+            return true;
         }
 
-        private boolean sendText() throws WeiboException {
-            return new StatusNewMsgDao(token).setGeoBean(geoBean).sendNewMsg(content, null);
+        private boolean sendText() throws  IOException {
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<StatusBean> call = service.updateStatus(token, content, String.valueOf(geoBean.getLat()), String.valueOf(geoBean.getLon()));
+            call.execute();
+            return true;
         }
 
         @Override
@@ -210,9 +204,8 @@ public class SendWeiboService extends Service {
                 } else {
                     result = sendText();
                 }
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
+            } catch (IOException e1) {
+                e1.printStackTrace();
             }
             if (!result) {
                 cancel(true);

@@ -1,18 +1,5 @@
 package org.qii.weiciyuan.ui.dm;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.bean.UserListBean;
-import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
-import org.qii.weiciyuan.dao.search.SearchDao;
-import org.qii.weiciyuan.support.asyncdrawable.TimeLineBitmapDownloader;
-import org.qii.weiciyuan.support.lib.PerformanceImageView;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.ui.basefragment.AbstractFriendsFanListFragment;
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-import org.qii.weiciyuan.ui.loader.FriendUserLoader;
-import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-
 import android.app.ActionBar;
 import android.content.Intent;
 import android.os.Bundle;
@@ -29,8 +16,26 @@ import android.widget.Filterable;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.bean.UserListBean;
+import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
+import org.qii.weiciyuan.support.asyncdrawable.TimeLineBitmapDownloader;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.PerformanceImageView;
+import org.qii.weiciyuan.support.settinghelper.SettingUtility;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.ui.basefragment.AbstractFriendsFanListFragment;
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+import org.qii.weiciyuan.ui.loader.FriendUserLoader;
+import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -135,11 +140,18 @@ public class DMSelectUserActivity extends AbstractAppActivity {
                             }
                         });
 
-                        SearchDao dao = new SearchDao(GlobalContext.getInstance().getSpecialToken(),
-                                constraint.toString());
+                        String token = GlobalContext.getInstance().getSpecialToken();
+                        String q = constraint.toString();
+                        String count = SettingUtility.getMsgCount();
+
+                        WeiBoService service = RetrofitUtils.createWeiBoService();
+                        Call<UserListBean> call = service.searchUserList(token, q,count,"0");
 
                         try {
-                            data = dao.getUserList().getUsers();
+                            Response<UserListBean> response = call.execute();
+
+                            data = response.body().getUsers();
+
                         } catch (Exception e) {
                         }
                         // Now assign the values and count to the FilterResults object

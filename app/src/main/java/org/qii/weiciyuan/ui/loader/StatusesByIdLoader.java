@@ -1,14 +1,21 @@
 package org.qii.weiciyuan.ui.loader;
 
-import org.qii.weiciyuan.bean.MessageListBean;
-import org.qii.weiciyuan.dao.user.StatusesTimeLineDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-
 import android.content.Context;
-import android.text.TextUtils;
 
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.bean.MessageListBean;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.utils.TimeLineUtility;
+import org.qii.weiciyuan.support.utils.TimeUtility;
+
+import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -42,24 +49,27 @@ public class StatusesByIdLoader extends AbstractAsyncNetRequestTaskLoader<Messag
     }
 
     public MessageListBean loadData() throws WeiboException {
-        StatusesTimeLineDao dao = new StatusesTimeLineDao(token, uid);
 
-        if (TextUtils.isEmpty(uid)) {
-            dao.setScreen_name(screenName);
-        }
-
-        if (!TextUtils.isEmpty(count)) {
-            dao.setCount(count);
-        }
-
-        dao.setSince_id(sinceId);
-        dao.setMax_id(maxId);
         MessageListBean result = null;
 
         lock.lock();
 
         try {
-            result = dao.getGSONMsgList();
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<MessageListBean> call = service.getUserTimelineList(token, uid,sinceId,maxId,count,screenName);
+            Response<MessageListBean> response = call.execute();
+            result = response.body();
+
+            if (result != null && result.getSize() > 0) {
+                for (MessageBean b : result.getItemList()) {
+                    TimeUtility.dealMills(b);
+                    TimeLineUtility.addJustHighLightLinks(b);
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             lock.unlock();
         }

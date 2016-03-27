@@ -22,9 +22,6 @@ public class AddFilterDialog extends DialogFragment {
         return new AddFilterDialog();
     }
 
-    public AddFilterDialog() {
-
-    }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {

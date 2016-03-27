@@ -1,11 +1,5 @@
 package org.qii.weiciyuan.ui.send;
 
-import org.qii.weiciyuan.bean.AtUserBean;
-import org.qii.weiciyuan.dao.search.AtUserDao;
-import org.qii.weiciyuan.support.lib.WeiboPatterns;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-
 import android.R;
 import android.app.Activity;
 import android.os.SystemClock;
@@ -21,9 +15,19 @@ import android.widget.Filterable;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import org.qii.weiciyuan.bean.AtUserBean;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.WeiboPatterns;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -161,8 +165,10 @@ public class AutoCompleteAdapter extends ArrayAdapter<AtUserBean> implements Fil
                 return filterResults;
             }
 
-            AtUserDao dao = new AtUserDao(GlobalContext.getInstance().getSpecialToken(), q);
-//            SearchDao dao = new SearchDao(GlobalContext.getInstance().getSpecialToken(), q);
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<List<AtUserBean>> call = service.searchATUser(GlobalContext.getInstance().getSpecialToken(), q,"10","0","2");
+
+
             activity.runOnUiThread(new Runnable() {
 
                 @Override
@@ -172,10 +178,15 @@ public class AutoCompleteAdapter extends ArrayAdapter<AtUserBean> implements Fil
             });
 
             try {
-//                data = dao.getUserList().getUsers();
-                data = dao.getUserInfo();
+                Response<List<AtUserBean>> response = call.execute();
+                data = response.body();
+
             } catch (Exception e) {
+                e.printStackTrace();
             }
+
+
+
             // Now assign the values and count to the FilterResults object
             filterResults.values = data;
             filterResults.count = data.size();

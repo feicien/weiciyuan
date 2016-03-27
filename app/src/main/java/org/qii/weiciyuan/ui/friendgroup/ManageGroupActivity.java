@@ -1,21 +1,5 @@
 package org.qii.weiciyuan.ui.friendgroup;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.GroupBean;
-import org.qii.weiciyuan.bean.GroupListBean;
-import org.qii.weiciyuan.dao.group.CreateGroupDao;
-import org.qii.weiciyuan.dao.group.DestroyGroupDao;
-import org.qii.weiciyuan.dao.group.UpdateGroupNameDao;
-import org.qii.weiciyuan.dao.maintimeline.FriendGroupDao;
-import org.qii.weiciyuan.support.database.GroupDBTask;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.ThemeUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-import org.qii.weiciyuan.ui.preference.SettingActivity;
-
 import android.app.ListFragment;
 import android.content.Intent;
 import android.os.Bundle;
@@ -30,8 +14,25 @@ import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.GroupBean;
+import org.qii.weiciyuan.bean.GroupListBean;
+import org.qii.weiciyuan.bean.ResultBean;
+import org.qii.weiciyuan.support.database.GroupDBTask;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.ThemeUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+import org.qii.weiciyuan.ui.preference.SettingActivity;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -129,19 +130,73 @@ public class ManageGroupActivity extends AbstractAppActivity {
             return true;
         }
 
-        public void addGroup(String groupName) {
-            new CreateGroupTask(GlobalContext.getInstance().getSpecialToken(), groupName)
-                    .executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+        public void addGroup(String name) {
+            final String token = GlobalContext.getInstance().getSpecialToken();
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<GroupBean> call = service.create(token, name);
+            call.enqueue(new Callback<GroupBean>() {
+                @Override
+                public void onResponse(Call<GroupBean> call, Response<GroupBean> response) {
+                    GroupBean groupBean = response.body();
+
+                    if (Utility.isAllNotNull(groupBean)) {
+                        refreshGroup(token);
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<GroupBean> call, Throwable t) {
+
+                }
+            });
         }
 
-        public void modifyGroupName(String idstr, String groupName) {
-            new ModifyGroupNameTask(GlobalContext.getInstance().getSpecialToken(), idstr, groupName)
-                    .executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+        public void modifyGroupName(String idstr, String name) {
+            final String token = GlobalContext.getInstance().getSpecialToken();
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<GroupBean> call = service.update(token, name, idstr);
+            call.enqueue(new Callback<GroupBean>() {
+                @Override
+                public void onResponse(Call<GroupBean> call, Response<GroupBean> response) {
+                    GroupBean groupBean = response.body();
+
+                    if (Utility.isAllNotNull(groupBean)) {
+                        refreshGroup(token);
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<GroupBean> call, Throwable t) {
+
+                }
+            });
         }
 
         public void removeGroup(List<String> groupNames) {
-            new RemoveGroupTask(GlobalContext.getInstance().getSpecialToken(), groupNames)
-                    .executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+            final String token = GlobalContext.getInstance().getSpecialToken();
+
+            for (String idStr : groupNames) {
+                WeiBoService service = RetrofitUtils.createWeiBoService();
+                Call<ResultBean> call = service.destroy(token, idStr);
+                call.enqueue(new Callback<ResultBean>() {
+                    @Override
+                    public void onResponse(Call<ResultBean> call, Response<ResultBean> response) {
+                        ResultBean body = response.body();
+                        if (Utility.isAllNotNull(body)) {
+                            refreshGroup(token);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ResultBean> call, Throwable t) {
+
+                    }
+                });
+
+            }
+
         }
 
         class GroupAdapter extends BaseAdapter {
@@ -177,8 +232,7 @@ public class ManageGroupActivity extends AbstractAppActivity {
 
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
-                View view = getActivity().getLayoutInflater()
-                        .inflate(R.layout.managegroupactivity_list_item_layout, parent, false);
+                View view = getActivity().getLayoutInflater().inflate(R.layout.managegroupactivity_list_item_layout, parent, false);
                 TextView tv = (TextView) view;
                 tv.setBackgroundColor(defaultBG);
                 if (getListView().getCheckedItemPositions().get(position)) {
@@ -221,8 +275,7 @@ public class ManageGroupActivity extends AbstractAppActivity {
                                         .add(group.getLists().get(positions.keyAt(i)).getIdstr());
                             }
                         }
-                        ModifyGroupDialog modifyGroupDialog = new ModifyGroupDialog(oriName,
-                                checkedIdstrs.get(0));
+                        ModifyGroupDialog modifyGroupDialog = ModifyGroupDialog.newInstance(oriName, checkedIdstrs.get(0));
                         modifyGroupDialog.setTargetFragment(ManageGroupFragment.this, 0);
                         modifyGroupDialog.show(getFragmentManager(), "");
                         mode.finish();
@@ -236,7 +289,7 @@ public class ManageGroupActivity extends AbstractAppActivity {
                                         .add(group.getLists().get(positions.keyAt(i)).getIdstr());
                             }
                         }
-                        RemoveGroupDialog removeGroupDialog = new RemoveGroupDialog(checkedIdstrs);
+                        RemoveGroupDialog removeGroupDialog = RemoveGroupDialog.newInstance(checkedIdstrs);
                         removeGroupDialog.setTargetFragment(ManageGroupFragment.this, 0);
                         removeGroupDialog.show(getFragmentManager(), "");
                         mode.finish();
@@ -252,7 +305,7 @@ public class ManageGroupActivity extends AbstractAppActivity {
 
             @Override
             public void onItemCheckedStateChanged(ActionMode mode, int position, long id,
-                    boolean checked) {
+                                                  boolean checked) {
                 if (getListView().getCheckedItemCount() > 1) {
                     modify.setVisible(false);
                 } else {
@@ -264,148 +317,28 @@ public class ManageGroupActivity extends AbstractAppActivity {
             }
         }
 
-        class CreateGroupTask extends MyAsyncTask<Void, Void, GroupBean> {
 
-            String token;
-            String name;
-            WeiboException e;
+        private void refreshGroup(String token) {
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<GroupListBean> call = service.getGroup(token);
+            call.enqueue(new Callback<GroupListBean>() {
+                @Override
+                public void onResponse(Call<GroupListBean> call, Response<GroupListBean> response) {
+                    GroupListBean groupListBean = response.body();
 
-            public CreateGroupTask(String token, String name) {
-                this.token = token;
-                this.name = name;
-            }
-
-            @Override
-            protected GroupBean doInBackground(Void... params) {
-                try {
-                    return new CreateGroupDao(token, name).create();
-                } catch (WeiboException e) {
-                    e.printStackTrace();
-                    cancel(true);
+                    GroupDBTask.update(groupListBean, GlobalContext.getInstance().getCurrentAccountId());
+                    GlobalContext.getInstance().setGroup(groupListBean);
+                    group = groupListBean;
+                    refreshListData();
                 }
-                return null;
-            }
 
-            @Override
-            protected void onPostExecute(GroupBean groupBean) {
-                super.onPostExecute(groupBean);
-                if (getActivity() == null) {
-                    return;
+                @Override
+                public void onFailure(Call<GroupListBean> call, Throwable t) {
+
                 }
-                if (Utility.isAllNotNull(groupBean)) {
-                    new RefreshGroupTask(token).executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
-            }
+            });
         }
 
-        class RefreshGroupTask extends MyAsyncTask<Void, GroupListBean, GroupListBean> {
 
-            private WeiboException e;
-            private String token;
-
-            public RefreshGroupTask(String token) {
-                this.token = token;
-            }
-
-            @Override
-            protected GroupListBean doInBackground(Void... params) {
-                try {
-                    return new FriendGroupDao(token).getGroup();
-                } catch (WeiboException e) {
-                    cancel(true);
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(GroupListBean groupListBean) {
-                super.onPostExecute(groupListBean);
-                if (getActivity() == null) {
-                    return;
-                }
-                GroupDBTask
-                        .update(groupListBean, GlobalContext.getInstance().getCurrentAccountId());
-                GlobalContext.getInstance().setGroup(groupListBean);
-                group = groupListBean;
-                refreshListData();
-            }
-        }
-
-        class RemoveGroupTask extends MyAsyncTask<Void, Void, Boolean> {
-
-            String token;
-            List<String> groupNames;
-            WeiboException e;
-
-            public RemoveGroupTask(String token, List<String> groupNames) {
-                this.token = token;
-                this.groupNames = groupNames;
-            }
-
-            @Override
-            protected Boolean doInBackground(Void... params) {
-                try {
-                    boolean result = true;
-                    for (String groupName : groupNames) {
-                        if (!new DestroyGroupDao(token, groupName).destroy()) {
-                            result = false;
-                        }
-                    }
-                    return result;
-                } catch (WeiboException e) {
-                    e.printStackTrace();
-                    cancel(true);
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(Boolean groupBean) {
-                super.onPostExecute(groupBean);
-                if (getActivity() == null) {
-                    return;
-                }
-                if (Utility.isAllNotNull(groupBean)) {
-                    new RefreshGroupTask(token).executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
-            }
-        }
-
-        class ModifyGroupNameTask extends MyAsyncTask<Void, Void, GroupBean> {
-
-            String token;
-            String groupIdstr;
-            String name;
-            WeiboException e;
-
-            public ModifyGroupNameTask(String token, String groupIdstr, String name) {
-                this.token = token;
-                this.groupIdstr = groupIdstr;
-                this.name = name;
-            }
-
-            @Override
-            protected GroupBean doInBackground(Void... params) {
-                try {
-
-                    return new UpdateGroupNameDao(token, groupIdstr, name).update();
-                } catch (WeiboException e) {
-                    e.printStackTrace();
-                    cancel(true);
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(GroupBean groupBean) {
-                super.onPostExecute(groupBean);
-                if (getActivity() == null) {
-                    return;
-                }
-                if (Utility.isAllNotNull(groupBean)) {
-                    new RefreshGroupTask(token).executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
-            }
-        }
     }
 }

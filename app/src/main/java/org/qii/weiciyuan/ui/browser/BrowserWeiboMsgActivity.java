@@ -1,25 +1,5 @@
 package org.qii.weiciyuan.ui.browser;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
-import org.qii.weiciyuan.dao.destroy.DestroyStatusDao;
-import org.qii.weiciyuan.dao.show.ShowStatusDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.ThemeUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.common.CommonErrorDialogFragment;
-import org.qii.weiciyuan.ui.common.CommonProgressDialogFragment;
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-import org.qii.weiciyuan.ui.loader.AbstractAsyncNetRequestTaskLoader;
-import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-import org.qii.weiciyuan.ui.send.WriteCommentActivity;
-import org.qii.weiciyuan.ui.send.WriteRepostActivity;
-import org.qii.weiciyuan.ui.task.FavAsyncTask;
-import org.qii.weiciyuan.ui.task.UnFavAsyncTask;
-
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -35,6 +15,30 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ShareActionProvider;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.FavBean;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.ThemeUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.common.CommonErrorDialogFragment;
+import org.qii.weiciyuan.ui.common.CommonProgressDialogFragment;
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+import org.qii.weiciyuan.ui.loader.AbstractAsyncNetRequestTaskLoader;
+import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
+import org.qii.weiciyuan.ui.send.WriteCommentActivity;
+import org.qii.weiciyuan.ui.send.WriteRepostActivity;
+
+import java.io.IOException;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: Jiang Qi
@@ -52,9 +56,6 @@ public class BrowserWeiboMsgActivity extends AbstractAppActivity
     private String msgId;
     private String token;
 
-    private FavAsyncTask favTask = null;
-    private UnFavAsyncTask unFavTask = null;
-    private RemoveTask removeTask;
 
     private ShareActionProvider shareActionProvider;
     private GestureDetector gestureDetector;
@@ -117,11 +118,6 @@ public class BrowserWeiboMsgActivity extends AbstractAppActivity
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Utility.cancelTasks(removeTask);
-    }
 
     private void fetchUserInfoFromServer() {
         getActionBar().setTitle(getString(R.string.fetching_weibo_info));
@@ -216,23 +212,57 @@ public class BrowserWeiboMsgActivity extends AbstractAppActivity
                         .show();
                 return true;
             case R.id.menu_fav:
-                if (Utility.isTaskStopped(favTask) && Utility.isTaskStopped(unFavTask)) {
-                    favTask = new FavAsyncTask(getToken(), msg.getId());
-                    favTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
+                fav(getToken(), msg.getId());
                 return true;
             case R.id.menu_unfav:
-                if (Utility.isTaskStopped(favTask) && Utility.isTaskStopped(unFavTask)) {
-                    unFavTask = new UnFavAsyncTask(getToken(), msg.getId());
-                    unFavTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-                }
+                unFav(getToken(), msg.getId());
                 return true;
             case R.id.menu_delete:
-                RemoveWeiboMsgDialog dialog = new RemoveWeiboMsgDialog(msg.getId());
+                RemoveWeiboMsgDialog dialog = RemoveWeiboMsgDialog.newInstance(msg.getId());
                 dialog.show(getFragmentManager(), "");
                 return true;
         }
         return false;
+    }
+
+    private void unFav(String token, String id) {
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<FavBean> call = service.unFavIt(token, id);
+        call.enqueue(new Callback<FavBean>() {
+            @Override
+            public void onResponse(Call<FavBean> call, Response<FavBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(GlobalContext.getInstance(),
+                            GlobalContext.getInstance().getString(R.string.un_fav_successfully),
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<FavBean> call, Throwable t) {
+
+            }
+        });
+    }
+
+    private void fav(String token, String id) {
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<FavBean> call = service.favIt(token, id);
+        call.enqueue(new Callback<FavBean>() {
+            @Override
+            public void onResponse(Call<FavBean> call, Response<FavBean> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(GlobalContext.getInstance(),
+                            GlobalContext.getInstance().getString(R.string.fav_successfully),
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<FavBean> call, Throwable t) {
+
+            }
+        });
     }
 
     private void buildShareActionMenu() {
@@ -241,10 +271,7 @@ public class BrowserWeiboMsgActivity extends AbstractAppActivity
 
     @Override
     public void removeMsg(String id) {
-        if (Utility.isTaskStopped(removeTask)) {
-            removeTask = new RemoveTask(id);
-            removeTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-        }
+        removeStatus(token,id);
     }
 
     public void updateCommentCount(int count) {
@@ -269,43 +296,25 @@ public class BrowserWeiboMsgActivity extends AbstractAppActivity
         return msg;
     }
 
-    class RemoveTask extends MyAsyncTask<Void, Void, Boolean> {
 
-        String id;
-        WeiboException e;
+    private void removeStatus(String token, String id){
 
-        public RemoveTask(String id) {
-            this.id = id;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            DestroyStatusDao dao = new DestroyStatusDao(token, id);
-            try {
-                return dao.destroy();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-                return false;
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        Call<MessageBean> call = service.destroyStatus(token, id);
+        call.enqueue(new Callback<MessageBean>() {
+            @Override
+            public void onResponse(Call<MessageBean> call, Response<MessageBean> response) {
+                if(response.isSuccessful() && response.body() != null){
+                    finish();
+                }
             }
-        }
 
-        @Override
-        protected void onCancelled(Boolean aBoolean) {
-            super.onCancelled(aBoolean);
-            if (this.e != null) {
-                Toast.makeText(BrowserWeiboMsgActivity.this, e.getError(), Toast.LENGTH_SHORT)
-                        .show();
-            }
-        }
+            @Override
+            public void onFailure(Call<MessageBean> call, Throwable t) {
 
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            if (aBoolean) {
-                finish();
             }
-        }
+        });
+
     }
 
     private static class RefreshLoader extends AbstractAsyncNetRequestTaskLoader<MessageBean> {
@@ -319,7 +328,18 @@ public class BrowserWeiboMsgActivity extends AbstractAppActivity
 
         @Override
         protected MessageBean loadData() throws WeiboException {
-            return new ShowStatusDao(GlobalContext.getInstance().getSpecialToken(), msgId).getMsg();
+
+            String token = GlobalContext.getInstance().getSpecialToken();
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<MessageBean> call = service.getMsg(token,msgId);
+            try {
+                Response<MessageBean>  response = call.execute();
+                return response.body();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+
         }
     }
 

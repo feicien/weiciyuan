@@ -82,9 +82,6 @@ public abstract class AbstractUserListFragment extends AbstractAppFragment {
         getListView().setFastScrollEnabled(SettingUtility.allowFastScroll());
     }
 
-    public AbstractUserListFragment() {
-
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

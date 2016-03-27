@@ -1,40 +1,5 @@
 package org.qii.weiciyuan.ui.userinfo;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.bean.MessageListBean;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
-import org.qii.weiciyuan.bean.android.MyStatusTimeLineData;
-import org.qii.weiciyuan.bean.android.TimeLinePosition;
-import org.qii.weiciyuan.dao.show.ShowUserDao;
-import org.qii.weiciyuan.dao.topic.UserTopicListDao;
-import org.qii.weiciyuan.support.asyncdrawable.TimeLineBitmapDownloader;
-import org.qii.weiciyuan.support.database.AccountDBTask;
-import org.qii.weiciyuan.support.database.MyStatusDBTask;
-import org.qii.weiciyuan.support.database.TopicDBTask;
-import org.qii.weiciyuan.support.debug.AppLogger;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.file.FileLocationMethod;
-import org.qii.weiciyuan.support.file.FileManager;
-import org.qii.weiciyuan.support.imageutility.ImageUtility;
-import org.qii.weiciyuan.support.lib.BlurImageView;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.lib.SwipeFrameLayout;
-import org.qii.weiciyuan.support.lib.TimeLineAvatarImageView;
-import org.qii.weiciyuan.support.lib.pulltorefresh.PullToRefreshBase;
-import org.qii.weiciyuan.support.utils.AnimationUtility;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.TimeLineUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.support.utils.ViewUtility;
-import org.qii.weiciyuan.ui.basefragment.AbstractMessageTimeLineFragment;
-import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgActivity;
-import org.qii.weiciyuan.ui.loader.StatusesByIdLoader;
-import org.qii.weiciyuan.ui.main.LeftMenuFragment;
-import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-import org.qii.weiciyuan.ui.topic.UserTopicListActivity;
-
 import android.animation.Animator;
 import android.app.ActionBar;
 import android.content.Context;
@@ -61,8 +26,49 @@ import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.bean.MessageListBean;
+import org.qii.weiciyuan.bean.TopicBean;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.bean.android.AsyncTaskLoaderResult;
+import org.qii.weiciyuan.bean.android.MyStatusTimeLineData;
+import org.qii.weiciyuan.bean.android.TimeLinePosition;
+import org.qii.weiciyuan.support.asyncdrawable.TimeLineBitmapDownloader;
+import org.qii.weiciyuan.support.database.AccountDBTask;
+import org.qii.weiciyuan.support.database.MyStatusDBTask;
+import org.qii.weiciyuan.support.database.TopicDBTask;
+import org.qii.weiciyuan.support.debug.AppLogger;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.file.FileLocationMethod;
+import org.qii.weiciyuan.support.file.FileManager;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.imageutility.ImageUtility;
+import org.qii.weiciyuan.support.lib.BlurImageView;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.lib.SwipeFrameLayout;
+import org.qii.weiciyuan.support.lib.TimeLineAvatarImageView;
+import org.qii.weiciyuan.support.lib.pulltorefresh.PullToRefreshBase;
+import org.qii.weiciyuan.support.utils.AnimationUtility;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.TimeLineUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.support.utils.ViewUtility;
+import org.qii.weiciyuan.ui.basefragment.AbstractMessageTimeLineFragment;
+import org.qii.weiciyuan.ui.browser.BrowserWeiboMsgActivity;
+import org.qii.weiciyuan.ui.loader.StatusesByIdLoader;
+import org.qii.weiciyuan.ui.main.LeftMenuFragment;
+import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
+import org.qii.weiciyuan.ui.topic.UserTopicListActivity;
+
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -110,8 +116,6 @@ public class UserInfoFragment extends AbstractMessageTimeLineFragment<MessageLis
 
     private ArrayList<String> topicList;
 
-    private TopicListTask topicListTask;
-    private RefreshTask refreshTask;
     private DBCacheTask dbTask;
 
     private AtomicInteger finishedWatcher;
@@ -119,14 +123,15 @@ public class UserInfoFragment extends AbstractMessageTimeLineFragment<MessageLis
     private TimeLinePosition position;
 
     public static UserInfoFragment newInstance(UserBean userBean, String token) {
-        UserInfoFragment fragment = new UserInfoFragment(userBean, token);
-        fragment.setArguments(new Bundle());
+
+        Bundle args = new Bundle();
+        args.putParcelable("userBean", userBean);
+        args.putString("token", token);
+        UserInfoFragment fragment = new UserInfoFragment();
+        fragment.setArguments(args);
         return fragment;
     }
 
-    public UserInfoFragment() {
-
-    }
 
     @Override
     public MessageListBean getList() {
@@ -472,7 +477,6 @@ public class UserInfoFragment extends AbstractMessageTimeLineFragment<MessageLis
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Utility.cancelTasks(refreshTask, topicListTask);
         GlobalContext.getInstance().unRegisterForAccountChangeListener(myProfileInfoChangeListener);
     }
 
@@ -495,21 +499,20 @@ public class UserInfoFragment extends AbstractMessageTimeLineFragment<MessageLis
         }
     };
 
-    public UserInfoFragment(UserBean userBean, String token) {
-        this.userBean = userBean;
-        this.token = token;
-    }
+
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable("bean", getList());
-        outState.putParcelable("userBean", userBean);
-        outState.putString("token", token);
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
+
+        userBean = getArguments().getParcelable("userBean");
+        token = getArguments().getString("token");
+
         switch (getCurrentState(savedInstanceState)) {
             case FIRST_TIME_START:
                 displayBasicInfo();
@@ -526,8 +529,7 @@ public class UserInfoFragment extends AbstractMessageTimeLineFragment<MessageLis
                 break;
             case ACTIVITY_DESTROY_AND_CREATE:
                 getList().replaceData((MessageListBean) savedInstanceState.getParcelable("bean"));
-                userBean = (UserBean) savedInstanceState.getParcelable("userBean");
-                token = savedInstanceState.getString("token");
+
                 getAdapter().notifyDataSetChanged();
                 refreshLayout(getList());
                 displayBasicInfo();
@@ -545,8 +547,41 @@ public class UserInfoFragment extends AbstractMessageTimeLineFragment<MessageLis
     }
 
     private void fetchTopicInfoFromServer() {
-        topicListTask = new TopicListTask();
-        topicListTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        String token = GlobalContext.getInstance().getSpecialToken();
+        String uid =  userBean.getId();
+
+        Call<List<TopicBean>> call = service.getTopicList(token, uid);
+        call.enqueue(new Callback<List<TopicBean>>() {
+            @Override
+            public void onResponse(Call<List<TopicBean>> call, Response<List<TopicBean>> response) {
+
+                stopRefreshMenuAnimationIfPossible();
+                if(response.isSuccessful()) {
+
+                    List<TopicBean> value = response.body();
+
+                    if (value != null) {
+                        ArrayList<String> msgList = new ArrayList<String>();
+                        for (TopicBean b : value) {
+                            msgList.add(b.hotword);
+                        }
+
+                        topicList = msgList;
+                        topicsCount.setText(Utility.convertStateNumberToString(getActivity(), String.valueOf(msgList.size())));
+                        ArrayList<String> dbCache = new ArrayList<String>();
+                        dbCache.addAll(topicList);
+                        TopicDBTask.asyncReplace(userBean.getId(), dbCache);
+
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<TopicBean>> call, Throwable t) {
+                stopRefreshMenuAnimationIfPossible();
+            }
+        });
     }
 
     @Override
@@ -855,48 +890,7 @@ public class UserInfoFragment extends AbstractMessageTimeLineFragment<MessageLis
         }
     }
 
-    private class TopicListTask extends MyAsyncTask<Void, ArrayList<String>, ArrayList<String>> {
 
-        WeiboException e;
-
-        @Override
-        protected ArrayList<String> doInBackground(Void... params) {
-            UserTopicListDao dao = new UserTopicListDao(
-                    GlobalContext.getInstance().getSpecialToken(), userBean.getId());
-            try {
-                return dao.getGSONMsgList();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onCancelled(ArrayList<String> strings) {
-            super.onCancelled(strings);
-            stopRefreshMenuAnimationIfPossible();
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<String> result) {
-            super.onPostExecute(result);
-            stopRefreshMenuAnimationIfPossible();
-
-            if (isCancelled()) {
-                return;
-            }
-            if (result == null || result.size() == 0) {
-                return;
-            }
-            topicList = result;
-            topicsCount.setText(Utility.convertStateNumberToString(getActivity(),
-                    String.valueOf(result.size())));
-            ArrayList<String> dbCache = new ArrayList<String>();
-            dbCache.addAll(topicList);
-            TopicDBTask.asyncReplace(userBean.getId(), dbCache);
-        }
-    }
 
     //sina api has bug,so must refresh to get actual data
     public void forceReloadData(UserBean bean) {
@@ -905,91 +899,60 @@ public class UserInfoFragment extends AbstractMessageTimeLineFragment<MessageLis
     }
 
     private void fetchLastestUserInfoFromServer() {
-        if (Utility.isTaskStopped(refreshTask)) {
-            refreshTask = new RefreshTask();
-            refreshTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-        }
+        refresh();
     }
 
-    private class RefreshTask extends MyAsyncTask<Object, UserBean, UserBean> {
 
-        WeiboException e;
+    private void refresh(){
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        String token = GlobalContext.getInstance().getSpecialToken();
 
-        @Override
-        protected UserBean doInBackground(Object... params) {
-            if (!isCancelled()) {
-                ShowUserDao dao = new ShowUserDao(GlobalContext.getInstance().getSpecialToken());
-                boolean haveId = !TextUtils.isEmpty(userBean.getId());
-                boolean haveName = !TextUtils.isEmpty(userBean.getScreen_name());
-                if (haveId) {
-                    dao.setUid(userBean.getId());
-                } else if (haveName) {
-                    dao.setScreen_name(userBean.getScreen_name());
-                } else {
-                    cancel(true);
-                    return null;
+        Call<UserBean> call = service.getUserShow(token, userBean.getId(),userBean.getScreen_name());
+        call.enqueue(new Callback<UserBean>() {
+            @Override
+            public void onResponse(Call<UserBean> call, Response<UserBean> response) {
+
+                if(response.isSuccessful()) {
+                    UserBean user = response.body();
+                    if (user != null) {
+
+                        //hack to fix sina weibo issue
+                        if (isSinaWeiboBlockWeiciyuanFetchUserInfo(user)) {
+                            AppLogger.e("Sina Weibo block Weiciyuan fetch user info from server!");
+                            return;
+                        }
+
+                        UserInfoFragment.this.userBean = user;
+                        displayBasicInfo();
+                        displayCoverPicture();
+                        if (getActivity() instanceof UserInfoActivity) {
+                            ((UserInfoActivity) getActivity()).setUser(user);
+                            getActivity().invalidateOptionsMenu();
+                        }
+                        for (MessageBean msg : bean.getItemList()) {
+                            msg.setUser(user);
+                        }
+                        if (isMyself()) {
+                            GlobalContext.getInstance().updateUserInfo(user);
+                            AccountDBTask.asyncUpdateMyProfile(GlobalContext.getInstance().getAccountBean(), user);
+                        }
+                        getAdapter().notifyDataSetChanged();
+                        stopRefreshMenuAnimationIfPossible();
+                    }
                 }
 
-                UserBean user = null;
-                try {
-                    user = dao.getUserInfo();
-                } catch (WeiboException e) {
-                    this.e = e;
-                    cancel(true);
-                }
-                if (user == null) {
-                    cancel(true);
-                }
-                return user;
-            } else {
-                return null;
-            }
-        }
-
-        @Override
-        protected void onCancelled(UserBean userBean) {
-            super.onCancelled(userBean);
-            if (Utility.isAllNotNull(getActivity(), this.e)) {
-                newMsgTipBar.setError(e.getError());
-            }
-            stopRefreshMenuAnimationIfPossible();
-        }
-
-        @Override
-        protected void onPostExecute(UserBean userInfoFromServer) {
-            if (userInfoFromServer == null || getActivity() == null) {
-                return;
             }
 
-            //hack to fix sina weibo issue
-            if (isSinaWeiboBlockWeiciyuanFetchUserInfo(userInfoFromServer)) {
-                AppLogger.e("Sina Weibo block Weiciyuan fetch user info from server!");
-                return;
+            @Override
+            public void onFailure(Call<UserBean> call, Throwable t) {
+//                if (Utility.isAllNotNull(getActivity(), this.e)) {
+//                    newMsgTipBar.setError(e.getError());
+//                }
+                stopRefreshMenuAnimationIfPossible();
             }
+        });
 
-            UserInfoFragment.this.userBean = userInfoFromServer;
-            displayBasicInfo();
-            displayCoverPicture();
-            if (getActivity() instanceof UserInfoActivity) {
-                ((UserInfoActivity) getActivity()).setUser(userInfoFromServer);
-                getActivity().invalidateOptionsMenu();
-            }
-            for (MessageBean msg : bean.getItemList()) {
-                msg.setUser(userInfoFromServer);
-            }
-            if (isMyself()) {
-                GlobalContext.getInstance().updateUserInfo(userInfoFromServer);
-                AccountDBTask.asyncUpdateMyProfile(GlobalContext.getInstance().getAccountBean(), userInfoFromServer);
-            }
-            getAdapter().notifyDataSetChanged();
-            stopRefreshMenuAnimationIfPossible();
-            super.onPostExecute(userInfoFromServer);
-        }
     }
 
     private class DBCacheTask extends MyAsyncTask<Void, ArrayList<String>, MyStatusTimeLineData> {

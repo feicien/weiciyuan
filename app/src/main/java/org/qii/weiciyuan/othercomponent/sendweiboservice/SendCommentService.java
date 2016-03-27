@@ -1,20 +1,5 @@
 package org.qii.weiciyuan.othercomponent.sendweiboservice;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.AccountBean;
-import org.qii.weiciyuan.bean.CommentBean;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.dao.send.CommentNewMsgDao;
-import org.qii.weiciyuan.support.database.DraftDBManager;
-import org.qii.weiciyuan.support.database.draftbean.CommentDraftBean;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.AppEventAction;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.NotificationUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.send.WriteCommentActivity;
-
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -24,10 +9,30 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.AccountBean;
+import org.qii.weiciyuan.bean.CommentBean;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.support.database.DraftDBManager;
+import org.qii.weiciyuan.support.database.draftbean.CommentDraftBean;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.AppEventAction;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.NotificationUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.send.WriteCommentActivity;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -123,20 +128,24 @@ public class SendCommentService extends Service {
             tasksNotifications.put(WeiboSendTask.this, notificationId);
         }
 
-        private CommentBean sendText() throws WeiboException {
-            CommentNewMsgDao dao = new CommentNewMsgDao(token, oriMsg.getId(), content);
-            dao.enableComment_ori(comment_ori);
-            return dao.sendNewMsg();
+        private CommentBean sendText() {
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<CommentBean> call = service.createComment(token, oriMsg.getId(), content, comment_ori?"1":"0");
+
+            try {
+                Response<CommentBean> response = call.execute();
+                return response.body();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+
+            return null;
         }
 
         @Override
         protected Void doInBackground(Void... params) {
-            try {
-                sendText();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-            }
+            sendText();
             return null;
         }
 

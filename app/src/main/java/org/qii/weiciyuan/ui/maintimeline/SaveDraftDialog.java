@@ -18,9 +18,6 @@ public class SaveDraftDialog extends DialogFragment {
         public void saveToDraft();
     }
 
-    public SaveDraftDialog() {
-
-    }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {

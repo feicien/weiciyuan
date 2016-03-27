@@ -1,15 +1,5 @@
 package org.qii.weiciyuan.ui.browser;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.dao.shorturl.Mid2IdDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.file.FileManager;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.common.CommonProgressDialogFragment;
-import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
-
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
@@ -42,7 +32,22 @@ import android.widget.ProgressBar;
 import android.widget.ShareActionProvider;
 import android.widget.Toast;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.QueryIdBean;
+import org.qii.weiciyuan.support.file.FileManager;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.common.CommonProgressDialogFragment;
+import org.qii.weiciyuan.ui.userinfo.UserInfoActivity;
+
+import java.io.IOException;
 import java.lang.ref.WeakReference;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -60,20 +65,17 @@ public class BrowserWebFragment extends Fragment {
     private ShareActionProvider mShareActionProvider;
     private MenuItem refreshItem;
 
-    public BrowserWebFragment() {
-        super();
+
+
+    public static BrowserWebFragment newInstance(String url) {
+
+        Bundle args = new Bundle();
+        args.putString("url", url);
+        BrowserWebFragment fragment = new BrowserWebFragment();
+        fragment.setArguments(args);
+        return fragment;
     }
 
-    public BrowserWebFragment(String url) {
-        super();
-        mUrl = url;
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString("mUrl", mUrl);
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -93,9 +95,7 @@ public class BrowserWebFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        if (savedInstanceState != null) {
-            mUrl = savedInstanceState.getString("mUrl");
-        }
+        mUrl = getArguments().getString("url");
     }
 
     @Override
@@ -377,8 +377,15 @@ public class BrowserWebFragment extends Fragment {
         @Override
         protected String doInBackground(Void... params) {
             try {
-                return new Mid2IdDao(GlobalContext.getInstance().getSpecialToken(), mid).getId();
-            } catch (WeiboException e) {
+                String token = GlobalContext.getInstance().getSpecialToken();
+                WeiBoService service = RetrofitUtils.createWeiBoService();
+                Call<QueryIdBean> call = service.queryId(token, mid,"1","1");
+
+                Response<QueryIdBean> response = call.execute();
+                QueryIdBean bean = response.body();
+                return bean.id;
+
+            } catch (IOException e) {
                 return "0";
             }
         }

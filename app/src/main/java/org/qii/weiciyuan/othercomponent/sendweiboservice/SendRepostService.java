@@ -7,24 +7,29 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
-import android.text.TextUtils;
+
 import org.qii.weiciyuan.R;
 import org.qii.weiciyuan.bean.AccountBean;
 import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.dao.send.RepostNewMsgDao;
 import org.qii.weiciyuan.support.database.DraftDBManager;
 import org.qii.weiciyuan.support.database.draftbean.RepostDraftBean;
 import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
 import org.qii.weiciyuan.support.lib.MyAsyncTask;
 import org.qii.weiciyuan.support.utils.AppEventAction;
 import org.qii.weiciyuan.support.utils.NotificationUtility;
 import org.qii.weiciyuan.support.utils.Utility;
 import org.qii.weiciyuan.ui.send.WriteRepostActivity;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -123,12 +128,17 @@ public class SendRepostService extends Service {
 
 
         private MessageBean sendText() throws WeiboException {
-            RepostNewMsgDao dao = new RepostNewMsgDao(token, oriMsg.getId());
-            if (!TextUtils.isEmpty(is_comment)) {
-                dao.setIs_comment(is_comment);
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<MessageBean> call2 = service.sendNewMsg(token, oriMsg.getId(), content, is_comment);
+            try {
+                Response<MessageBean> response2 = call2.execute();
+                return response2.body();
+            } catch (IOException e1) {
+                e1.printStackTrace();
             }
-            dao.setStatus(content);
-            return dao.sendNewMsg();
+
+            return null;
         }
 
         @Override

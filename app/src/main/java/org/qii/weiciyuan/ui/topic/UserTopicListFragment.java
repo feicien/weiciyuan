@@ -1,14 +1,5 @@
 package org.qii.weiciyuan.ui.topic;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.dao.topic.TopicDao;
-import org.qii.weiciyuan.dao.topic.UserTopicListDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-
 import android.app.ListFragment;
 import android.content.Intent;
 import android.os.Bundle;
@@ -20,8 +11,19 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.TopicBean;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -34,34 +36,18 @@ public class UserTopicListFragment extends ListFragment {
 
     private UserBean userBean;
 
-    private TopicListTask task;
-    private FollowTopicTask followTopicTask;
 
-    public UserTopicListFragment() {
+    public static UserTopicListFragment newInstance(UserBean userBean, ArrayList<String> topicList) {
 
+        Bundle args = new Bundle();
+        args.putParcelable("userBean", userBean);
+        args.putStringArrayList("topicList", topicList);
+        UserTopicListFragment fragment = new UserTopicListFragment();
+        fragment.setArguments(args);
+        return fragment;
     }
 
-    public UserTopicListFragment(UserBean userBean) {
-        this.userBean = userBean;
-    }
 
-    public UserTopicListFragment(UserBean userBean, ArrayList<String> topicList) {
-        this.userBean = userBean;
-        this.result = topicList;
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        Utility.cancelTasks(task, followTopicTask);
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putParcelable("userBean", userBean);
-        outState.putStringArrayList("topicList", result);
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -73,10 +59,8 @@ public class UserTopicListFragment extends ListFragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        if (savedInstanceState != null) {
-            userBean = (UserBean) savedInstanceState.getParcelable("userBean");
-            result = (ArrayList<String>) savedInstanceState.getStringArrayList("topicList");
-        }
+        userBean = getArguments().getParcelable("userBean");
+        result = getArguments().getStringArrayList("topicList");
         adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1,
                 result);
         setListAdapter(adapter);
@@ -101,8 +85,34 @@ public class UserTopicListFragment extends ListFragment {
     }
 
     private void refresh() {
-        task = new TopicListTask();
-        task.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        String token = GlobalContext.getInstance().getSpecialToken();
+        String uid =  userBean.getId();
+
+        Call<List<TopicBean>> call = service.getTopicList(token, uid);
+        call.enqueue(new Callback<List<TopicBean>>() {
+            @Override
+            public void onResponse(Call<List<TopicBean>> call, Response<List<TopicBean>> response) {
+                if(response.isSuccessful()) {
+
+                    List<TopicBean> value = response.body();
+
+                    if (value != null) {
+                        ArrayList<String> msgList = new ArrayList<String>();
+                        for (TopicBean b : value) {
+                            msgList.add(b.hotword);
+                        }
+                        result.clear();
+                        result.addAll(msgList);
+                        adapter.notifyDataSetChanged();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<TopicBean>> call, Throwable t) {
+            }
+        });
     }
 
     @Override
@@ -125,86 +135,35 @@ public class UserTopicListFragment extends ListFragment {
         return super.onOptionsItemSelected(item);
     }
 
-    class TopicListTask extends MyAsyncTask<Void, List<String>, List<String>> {
-        WeiboException e;
-
-        @Override
-        protected List<String> doInBackground(Void... params) {
-            UserTopicListDao dao = new UserTopicListDao(
-                    GlobalContext.getInstance().getSpecialToken(), userBean.getId());
-            try {
-                return dao.getGSONMsgList();
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(List<String> atUserBeans) {
-            super.onPostExecute(atUserBeans);
-            if (isCancelled()) {
-                return;
-            }
-            if (atUserBeans == null || atUserBeans.size() == 0) {
-                return;
-            }
-
-            result.clear();
-            result.addAll(atUserBeans);
-            adapter.notifyDataSetChanged();
-        }
-    }
 
     public void addTopic(String keyWord) {
-        if (Utility.isTaskStopped(followTopicTask)) {
-            followTopicTask = new FollowTopicTask(keyWord);
-            followTopicTask.executeOnExecutor(MyAsyncTask.THREAD_POOL_EXECUTOR);
-        }
-    }
 
-    private class FollowTopicTask extends MyAsyncTask<Void, Boolean, Boolean> {
-        WeiboException e;
-        String keyWord;
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+        String token = GlobalContext.getInstance().getSpecialToken();
 
-        public FollowTopicTask(String keyWord) {
-            this.keyWord = keyWord;
-        }
+        Call<TopicBean> call = service.followTopic(token, keyWord);
+        call.enqueue(new Callback<TopicBean>() {
+            @Override
+            public void onResponse(Call<TopicBean> call, Response<TopicBean> response) {
+                if(response.isSuccessful()) {
+                    TopicBean user = response.body();
 
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            try {
-                return new TopicDao(GlobalContext.getInstance().getSpecialToken()).follow(keyWord);
-            } catch (WeiboException e) {
-                this.e = e;
-                cancel(true);
+                    if (user!=null) {
+                        Toast.makeText(getActivity(), getString(R.string.follow_topic_successfully),
+                                Toast.LENGTH_SHORT).show();
+                        refresh();
+
+                    } else {
+                        Toast.makeText(getActivity(), getString(R.string.follow_topic_failed),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
-            return false;
-        }
 
-        @Override
-        protected void onCancelled(Boolean aBoolean) {
-            super.onCancelled(aBoolean);
-            if (Utility.isAllNotNull(getActivity(), this.e)) {
-                Toast.makeText(getActivity(), e.getError(), Toast.LENGTH_SHORT).show();
+            @Override
+            public void onFailure(Call<TopicBean> call, Throwable t) {
             }
-        }
+        });
 
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            if (getActivity() == null) {
-                return;
-            }
-            if (aBoolean) {
-                Toast.makeText(getActivity(), getString(R.string.follow_topic_successfully),
-                        Toast.LENGTH_SHORT).show();
-                refresh();
-            } else {
-                Toast.makeText(getActivity(), getString(R.string.follow_topic_failed),
-                        Toast.LENGTH_SHORT).show();
-            }
-        }
     }
 }

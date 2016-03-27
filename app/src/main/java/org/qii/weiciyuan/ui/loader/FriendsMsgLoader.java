@@ -1,20 +1,24 @@
 package org.qii.weiciyuan.ui.loader;
 
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.bean.MessageListBean;
-import org.qii.weiciyuan.dao.maintimeline.BilateralTimeLineDao;
-import org.qii.weiciyuan.dao.maintimeline.FriendGroupTimeLineDao;
-import org.qii.weiciyuan.dao.maintimeline.MainFriendsTimeLineDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.settinghelper.SettingUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.maintimeline.FriendsTimeLineFragment;
-
 import android.content.Context;
 import android.text.TextUtils;
 
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.bean.MessageListBean;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.settinghelper.SettingUtility;
+import org.qii.weiciyuan.support.utils.TimeLineUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.maintimeline.FriendsTimeLineFragment;
+
+import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -73,25 +77,39 @@ public class FriendsMsgLoader extends AbstractAsyncNetRequestTaskLoader<MessageL
         return !TextUtils.isEmpty(sinceId) && TextUtils.isEmpty(maxId);
     }
 
-    private MessageListBean get(String token, String groupId, String sinceId, String maxId)
-            throws WeiboException {
-        MainFriendsTimeLineDao dao;
+    private MessageListBean get(String token, String groupId, String sinceId, String maxId) throws WeiboException {
+
+        String count = SettingUtility.getMsgCount();
+
+        WeiBoService service = RetrofitUtils.createWeiBoService();
+
+        Call<MessageListBean> call;
         if (currentGroupId.equals(FriendsTimeLineFragment.BILATERAL_GROUP_ID)) {
-            dao = new BilateralTimeLineDao(token);
+            call = service.getBilateralTimelineList(token, sinceId, maxId, count);
         } else if (currentGroupId.equals(FriendsTimeLineFragment.ALL_GROUP_ID)) {
-            dao = new MainFriendsTimeLineDao(token);
+            call = service.getFriendsTimelineList(token, sinceId, maxId, count);
         } else {
-            dao = new FriendGroupTimeLineDao(token, currentGroupId);
+            call = service.getFriendGroupTimelineList(token, sinceId, maxId, count,currentGroupId);
         }
 
-        dao.setSince_id(sinceId);
-        dao.setMax_id(maxId);
+
         MessageListBean result = null;
 
         lock.lock();
 
         try {
-            result = dao.getGSONMsgList();
+            Response<MessageListBean> response = call.execute();
+            result = response.body();
+
+            if (result != null && result.getItemList().size() > 0) {
+                TimeLineUtility.filterMessage(result);
+                TimeLineUtility.filterHomeTimeLineSinaWeiboAd(result);
+            }
+
+//            ClearUnreadDao.clearUnread(token, ClearUnreadDao.STATUS);
+
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             lock.unlock();
         }

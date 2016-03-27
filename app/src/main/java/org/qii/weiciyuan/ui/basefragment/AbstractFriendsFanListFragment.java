@@ -1,17 +1,17 @@
 package org.qii.weiciyuan.ui.basefragment;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.UserBean;
-import org.qii.weiciyuan.bean.UserListBean;
-import org.qii.weiciyuan.support.settinghelper.SettingUtility;
-import org.qii.weiciyuan.support.utils.AppConfig;
-
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.widget.AbsListView;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.UserBean;
+import org.qii.weiciyuan.bean.UserListBean;
+import org.qii.weiciyuan.support.settinghelper.SettingUtility;
+import org.qii.weiciyuan.support.utils.AppConfig;
 
 import java.util.List;
 
@@ -21,9 +21,6 @@ import java.util.List;
  */
 public abstract class AbstractFriendsFanListFragment extends AbstractUserListFragment {
 
-    public AbstractFriendsFanListFragment() {
-
-    }
 
     //this api has bug, check cursor before add data
     @Override

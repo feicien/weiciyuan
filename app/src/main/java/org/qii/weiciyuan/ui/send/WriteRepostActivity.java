@@ -1,16 +1,5 @@
 package org.qii.weiciyuan.ui.send;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.AccountBean;
-import org.qii.weiciyuan.bean.MessageBean;
-import org.qii.weiciyuan.dao.send.RepostNewMsgDao;
-import org.qii.weiciyuan.othercomponent.sendweiboservice.SendRepostService;
-import org.qii.weiciyuan.support.database.DraftDBManager;
-import org.qii.weiciyuan.support.database.draftbean.RepostDraftBean;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.ui.search.AtUserActivity;
-
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -19,6 +8,17 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
+
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.AccountBean;
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.dao.URLHelper;
+import org.qii.weiciyuan.othercomponent.sendweiboservice.SendRepostService;
+import org.qii.weiciyuan.support.database.DraftDBManager;
+import org.qii.weiciyuan.support.database.draftbean.RepostDraftBean;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.ui.search.AtUserActivity;
 
 /**
  * User: Jiang Qi
@@ -309,11 +309,11 @@ public class WriteRepostActivity extends AbstractWriteActivity<MessageBean> {
             boolean oriComment = (menuEnableOriComment != null && menuEnableOriComment.isChecked());
             String is_comment = "";
             if (comment && oriComment) {
-                is_comment = RepostNewMsgDao.ENABLE_COMMENT_ALL;
+                is_comment = URLHelper.ENABLE_COMMENT_ALL;
             } else if (comment) {
-                is_comment = RepostNewMsgDao.ENABLE_COMMENT;
+                is_comment = URLHelper.ENABLE_COMMENT;
             } else if (oriComment) {
-                is_comment = RepostNewMsgDao.ENABLE_ORI_COMMENT;
+                is_comment = URLHelper.ENABLE_ORI_COMMENT;
             }
 
             Intent intent = new Intent(WriteRepostActivity.this, SendRepostService.class);

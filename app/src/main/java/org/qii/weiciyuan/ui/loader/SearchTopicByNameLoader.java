@@ -1,13 +1,23 @@
 package org.qii.weiciyuan.ui.loader;
 
-import org.qii.weiciyuan.bean.TopicResultListBean;
-import org.qii.weiciyuan.dao.topic.SearchTopicDao;
-import org.qii.weiciyuan.support.error.WeiboException;
-
 import android.content.Context;
 
+import org.qii.weiciyuan.bean.MessageBean;
+import org.qii.weiciyuan.bean.TopicResultListBean;
+import org.qii.weiciyuan.support.error.WeiboException;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.http.WeiBoService;
+import org.qii.weiciyuan.support.settinghelper.SettingUtility;
+import org.qii.weiciyuan.support.utils.TimeUtility;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -21,23 +31,46 @@ public class SearchTopicByNameLoader
     private String token;
     private String searchWord;
     private String page;
+    private String count;
 
     public SearchTopicByNameLoader(Context context, String token, String searchWord, String page) {
         super(context);
         this.token = token;
         this.searchWord = searchWord;
         this.page = page;
+        this.count = SettingUtility.getMsgCount();
     }
 
     public TopicResultListBean loadData() throws WeiboException {
-        SearchTopicDao dao = new SearchTopicDao(token, searchWord);
-        dao.setPage(page);
 
         TopicResultListBean result = null;
         lock.lock();
 
         try {
-            result = dao.getGSONMsgList();
+
+            WeiBoService service = RetrofitUtils.createWeiBoService();
+            Call<TopicResultListBean> call = service.searchTopic(token, searchWord,count, page);
+            Response<TopicResultListBean> response = call.execute();
+            result = response.body();
+
+            if (result != null && result.getStatuses() != null && result.getStatuses().size() > 0) {
+                List<MessageBean> msgList = result.getStatuses();
+                Iterator<MessageBean> iterator = msgList.iterator();
+
+                while (iterator.hasNext()) {
+                    MessageBean msg = iterator.next();
+                    if (msg.getUser() == null) {
+                        iterator.remove();
+                    } else {
+                        msg.getListViewSpannableString();
+                        TimeUtility.dealMills(msg);
+                    }
+                }
+            }
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             lock.unlock();
         }

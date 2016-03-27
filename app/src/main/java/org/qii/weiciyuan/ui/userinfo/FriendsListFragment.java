@@ -28,9 +28,6 @@ public class FriendsListFragment extends AbstractFriendsFanListFragment {
         return fragment;
     }
 
-    public FriendsListFragment() {
-
-    }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {

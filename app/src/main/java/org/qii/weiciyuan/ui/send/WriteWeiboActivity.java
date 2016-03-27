@@ -1,32 +1,5 @@
 package org.qii.weiciyuan.ui.send;
 
-import org.qii.weiciyuan.R;
-import org.qii.weiciyuan.bean.AccountBean;
-import org.qii.weiciyuan.bean.GeoBean;
-import org.qii.weiciyuan.bean.android.MusicInfo;
-import org.qii.weiciyuan.dao.location.BaiduGeoCoderDao;
-import org.qii.weiciyuan.dao.location.GoogleGeoCoderDao;
-import org.qii.weiciyuan.othercomponent.sendweiboservice.SendWeiboService;
-import org.qii.weiciyuan.support.database.DraftDBManager;
-import org.qii.weiciyuan.support.database.draftbean.StatusDraftBean;
-import org.qii.weiciyuan.support.error.WeiboException;
-import org.qii.weiciyuan.support.file.FileLocationMethod;
-import org.qii.weiciyuan.support.imageutility.ImageEditUtility;
-import org.qii.weiciyuan.support.imageutility.ImageUtility;
-import org.qii.weiciyuan.support.lib.CheatSheet;
-import org.qii.weiciyuan.support.lib.KeyboardControlEditText;
-import org.qii.weiciyuan.support.lib.MyAsyncTask;
-import org.qii.weiciyuan.support.smileypicker.SmileyPicker;
-import org.qii.weiciyuan.support.utils.GlobalContext;
-import org.qii.weiciyuan.support.utils.SmileyPickerUtility;
-import org.qii.weiciyuan.support.utils.Utility;
-import org.qii.weiciyuan.support.utils.ViewUtility;
-import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
-import org.qii.weiciyuan.ui.login.AccountActivity;
-import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
-import org.qii.weiciyuan.ui.maintimeline.SaveDraftDialog;
-import org.qii.weiciyuan.ui.search.AtUserActivity;
-
 import android.app.ActionBar;
 import android.content.ContentValues;
 import android.content.Context;
@@ -55,7 +28,39 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.qii.weiciyuan.R;
+import org.qii.weiciyuan.bean.AccountBean;
+import org.qii.weiciyuan.bean.BaiduMapBean;
+import org.qii.weiciyuan.bean.GeoBean;
+import org.qii.weiciyuan.bean.android.MusicInfo;
+import org.qii.weiciyuan.dao.location.GoogleGeoCoderDao;
+import org.qii.weiciyuan.othercomponent.sendweiboservice.SendWeiboService;
+import org.qii.weiciyuan.support.database.DraftDBManager;
+import org.qii.weiciyuan.support.database.draftbean.StatusDraftBean;
+import org.qii.weiciyuan.support.file.FileLocationMethod;
+import org.qii.weiciyuan.support.http.BaiduMapService;
+import org.qii.weiciyuan.support.http.RetrofitUtils;
+import org.qii.weiciyuan.support.imageutility.ImageEditUtility;
+import org.qii.weiciyuan.support.imageutility.ImageUtility;
+import org.qii.weiciyuan.support.lib.CheatSheet;
+import org.qii.weiciyuan.support.lib.KeyboardControlEditText;
+import org.qii.weiciyuan.support.lib.MyAsyncTask;
+import org.qii.weiciyuan.support.smileypicker.SmileyPicker;
+import org.qii.weiciyuan.support.utils.GlobalContext;
+import org.qii.weiciyuan.support.utils.SmileyPickerUtility;
+import org.qii.weiciyuan.support.utils.Utility;
+import org.qii.weiciyuan.support.utils.ViewUtility;
+import org.qii.weiciyuan.ui.interfaces.AbstractAppActivity;
+import org.qii.weiciyuan.ui.login.AccountActivity;
+import org.qii.weiciyuan.ui.main.MainTimeLineActivity;
+import org.qii.weiciyuan.ui.maintimeline.SaveDraftDialog;
+import org.qii.weiciyuan.ui.search.AtUserActivity;
+
 import java.io.File;
+import java.io.IOException;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 /**
  * User: qii
@@ -876,11 +881,15 @@ public class WriteWeiboActivity extends AbstractAppActivity
             }
 
             try {
-                result = new BaiduGeoCoderDao(geoBean.getLat(), geoBean.getLon()).get();
+                BaiduMapService service = RetrofitUtils.createBaiduMapService();
+                Call<BaiduMapBean> call = service.getAddress(geoBean.getLat() + "," + geoBean.getLon());
+                Response<BaiduMapBean> response = call.execute();
+                result = response.body().result.formatted_address;
+
                 if (!TextUtils.isEmpty(result)) {
                     return result;
                 }
-            } catch (WeiboException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
             return null;
